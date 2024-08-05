@@ -1,5 +1,4 @@
 import smtplib, ssl, csv, base64
-from getpass import getpass
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
@@ -11,13 +10,6 @@ from argparse import ArgumentParser
 #from io import BytesIO
 
 PORT = 465
-#PASSWORD = getpass()
-#SENDER_EMAIL = input("Email: ")
-#NEWSLETTER = input("Newsletter name: ")
-#FOLDER = input("Newsletter folder: ")
-#ISSUE = input("Issue number: ")
-#PREAMBLE = input("Preamble: ")
-#PHOTO_ID = input("photo id: ")
 
 
 #SCOPES = ['https://www.googleapis.com/auth/drive']
