@@ -3,6 +3,7 @@ from getpass import getpass
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
+from argparse import ArgumentParser
 
 #from googleapiclient.discovery import build
 #from googleapiclient.http import MediaIoBaseDownload
@@ -10,12 +11,12 @@ from email.mime.image import MIMEImage
 #from io import BytesIO
 
 PORT = 465
-PASSWORD = getpass()
-SENDER_EMAIL = input("Email: ")
-NEWSLETTER = input("Newsletter name: ")
-FOLDER = input("Newsletter folder: ")
-ISSUE = input("Issue number: ")
-PREAMBLE = input("Preamble: ")
+#PASSWORD = getpass()
+#SENDER_EMAIL = input("Email: ")
+#NEWSLETTER = input("Newsletter name: ")
+#FOLDER = input("Newsletter folder: ")
+#ISSUE = input("Issue number: ")
+#PREAMBLE = input("Preamble: ")
 #PHOTO_ID = input("photo id: ")
 
 
@@ -48,25 +49,24 @@ def convert_image(filepath: str) -> bytes:
         return encoded_string
 
 
-def generate_email():
+def generate_email(config):
     # Get the data in a nice format
-    email_addresses = []
     image_filepaths = {}
     title_ordered_responses = {}
     captions = {}
-    with open(f"{FOLDER}/issue_{ISSUE}.csv") as csvfile:
+    with open(f'{config["folder"]}/issue_{config["issue"]}.csv') as csvfile:
         reader = csv.DictReader(csvfile)
         for row in reader:
-            email_addresses.append(row["Email address"])
             name = row["Name"]
             for key, item in row.items():
                 if key not in ["Name", "Email address", "Timestamp", "❓Submit A Question", "✍️ Caption"]:
                     value = item
 
                     if key in ["📸 Photo Wall"]:
-                        idx = item.split("id=")[-1]
-                        image_filepaths[idx] = f"{name}.jpg"
-                        value = idx
+#                        idx = item.split("id=")[-1]
+#                        image_filepaths[idx] = f"{name}.jpg"
+                        image_filepaths[name] = f'{config["folder"]}/photos_issue_{config["issue"]}/{name.lower()}.jpg'
+                        value = ""
 
                     if key not in title_ordered_responses:
                         title_ordered_responses[key] = {name: value}
@@ -82,10 +82,10 @@ def generate_email():
 <meta charset="UTF-8">
 <meta http-equiv="X-UA-Compatible" content="IE-edge">
 <meta name="viewpoint" content="width=device.width, initial-scale=1.0">
-<title>{NEWSLETTER}</title>
+<title>{config["name"]}</title>
 </head><body>\n"""
-    email += f"<h1>{NEWSLETTER} Issue {ISSUE}</h1>\n"
-    email += f"<p>{PREAMBLE}</p>\n"
+    email += f'<h1>{config["name"]} Issue {config["issue"]}</h1>\n'
+    email += f'<p>{config["text"]}</p>\n'
 
     for title, responses in title_ordered_responses.items():
         email += f"<h1>{title}</h1>\n"
@@ -95,22 +95,26 @@ def generate_email():
             if title in ["📸 Photo Wall"]:
                 caption = captions[name]
 
-                email += f'<img src="cid:{response}" alt="{caption}" width="500" />'
+                email += f'<img src="cid:{name}" alt="{caption}" width="500px" />'
                 email += f'<p>{caption}</p>'
             else:
                 email += f"<p>{response}</p>\n"
 
     email += "</body><html>\n"
 
-    return email, email_addresses, image_filepaths
+    return email, image_filepaths
 
 
-def send_email(body, addresses, images):
+def send_email(body, images, config):
     message = MIMEMultipart("alternative")
-    message["Subject"] = f"{NEWSLETTER} Issue {ISSUE}"
-    message["From"] = SENDER_EMAIL
-    message["To"] = SENDER_EMAIL
-#    message["To"] = ', '.join(addresses)
+    message["Subject"] = f'{config["name"]} Issue {config["issue"]}'
+
+    if (config["debug"]):
+        message["To"] = config["email"]
+    else:
+        message["To"] = ', '.join(config["addresses"])
+
+    message["From"] = config["email"]
 
     text = "If you are reading this, please contact me."
 
@@ -130,15 +134,30 @@ def send_email(body, addresses, images):
     context = ssl.create_default_context()
 
     with smtplib.SMTP_SSL("smtp.gmail.com", PORT, context=context) as server:
-        server.login(SENDER_EMAIL, PASSWORD)
-        server.sendmail(
-            SENDER_EMAIL, SENDER_EMAIL, message.as_string()
-#            SENDER_EMAIL, addresses, message.as_string()
-        )
+        server.login(config["email"], config["password"])
+        if config["debug"]:
+            server.sendmail(
+                config["email"], config["email"], message.as_string()
+            )
+        else:
+            server.sendmail(
+                config["email"], config["addresses"], message.as_string()
+            )
 
-email, addresses, images = generate_email()
+if __name__=='__main__':
+    args = ArgumentParser(prog="Newsletter make script")
+    args.add_argument("-e", "--email", required=True, type=str)
+    args.add_argument("-p", "--password", required=True, type=str)
+    args.add_argument("-n", "--name", required=True, type=str)
+    args.add_argument("-f", "--folder", required=True, type=str)
+    args.add_argument("-i", "--issue", required=True, type=str)
+    args.add_argument("-t", "--text", required=True, type=str)
+    args.add_argument("-d", "--debug", action="store_true")
 
-# with open("test.html", "w") as out:
-#     out.write(email)
+    config = vars(args.parse_args())
 
-send_email(email, addresses, images)
+    with open(f'{config["folder"]}/emails.txt', "r") as addr_file:
+        config["addresses"] = [addr.replace("\n", "") for addr in addr_file.readlines()]
+
+    email, images = generate_email(config)
+    send_email(email, images, config)
