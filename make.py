@@ -1,4 +1,4 @@
-import smtplib, ssl, csv, base64
+import smtplib, ssl, csv, base64, yaml
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
@@ -138,15 +138,20 @@ def send_email(body, images, config):
 
 if __name__=='__main__':
     args = ArgumentParser(prog="Newsletter make script")
-    args.add_argument("-e", "--email", required=True, type=str)
-    args.add_argument("-p", "--password", required=True, type=str)
-    args.add_argument("-n", "--name", required=True, type=str)
-    args.add_argument("-f", "--folder", required=True, type=str)
-    args.add_argument("-i", "--issue", required=True, type=str)
-    args.add_argument("-t", "--text", required=True, type=str)
+    args.add_argument("-p", "--password", required=True)
+    args.add_argument("-c", "--config", required=True)
     args.add_argument("-d", "--debug", action="store_true")
 
-    config = vars(args.parse_args())
+    args = args.parse_args()
+
+    with open(args.config) as config_file:
+        try:
+            config = yaml.safe_load(config_file)
+            config["password"] = args.password
+            config["debug"] = args.debug
+        except yaml.YAMLError as e:
+            print(e)
+            quit()
 
     with open(f'{config["folder"]}/emails.txt', "r") as addr_file:
         config["addresses"] = [addr.replace("\n", "") for addr in addr_file.readlines()]
