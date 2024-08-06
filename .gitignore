@@ -1,4 +1,5 @@
 test.*
+send.sh
 venv/
 
 # Ideally don't want to have to ignore
