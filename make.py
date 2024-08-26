@@ -41,7 +41,7 @@ def convert_image(filepath: str) -> bytes:
         return encoded_string
 
 
-def generate_email(config):
+def generate_newsletter(config):
     # Get the data in a nice format
     image_filepaths = {}
     title_ordered_responses = {}
@@ -97,6 +97,21 @@ def generate_email(config):
     return email, image_filepaths
 
 
+def generate_question_request(config):
+    email = f"""
+<html><head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE-edge">
+<meta name="viewpoint" content="width=device.width, initial-scale=1.0">
+<title>{config["name"]}</title>
+</head><body>\n"""
+    email += f'<h1>❓Submit A Question for Issue {config["issue"]}</h1>\n'
+    email += f'<p>{config["text"]}</p><br/>\n'
+    email += f'<a href="{config["link"]}">Submit your question here!</p>\n'
+    email += "</body><html>\n"
+
+    return email
+
 def send_email(body, images, config):
     message = MIMEMultipart("alternative")
     message["Subject"] = f'{config["name"]} Issue {config["issue"]}'
@@ -141,6 +156,7 @@ if __name__=='__main__':
     args.add_argument("-p", "--password", required=True)
     args.add_argument("-c", "--config", required=True)
     args.add_argument("-d", "--debug", action="store_true")
+    args.add_argument("-q", "--question", action="store_true")
 
     args = args.parse_args()
 
@@ -156,5 +172,10 @@ if __name__=='__main__':
     with open(f'{config["folder"]}/emails.txt', "r") as addr_file:
         config["addresses"] = [addr.replace("\n", "") for addr in addr_file.readlines()]
 
-    email, images = generate_email(config)
+    if args.question:
+        email = generate_question_request(config)
+        images = {}
+    else:
+        email, images = generate_newsletter(config)
+
     send_email(email, images, config)
