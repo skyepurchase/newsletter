@@ -51,7 +51,7 @@ def generate_newsletter(config):
         for row in reader:
             name = row["Name"]
             for key, item in row.items():
-                if key not in ["Name", "Email address", "Timestamp", "❓Submit A Question", "✍️ Caption"]:
+                if key not in ["Name", "Timestamp", "❓Submit A Question", "✍️ Caption"]:
                     value = item
 
                     if key in ["📸 Photo Wall"]:
@@ -97,7 +97,7 @@ def generate_newsletter(config):
     return email, image_filepaths
 
 
-def generate_question_request(config):
+def generate_email_request(config, request_type: str):
     email = f"""
 <html><head>
 <meta charset="UTF-8">
@@ -105,9 +105,9 @@ def generate_question_request(config):
 <meta name="viewpoint" content="width=device.width, initial-scale=1.0">
 <title>{config["name"]}</title>
 </head><body>\n"""
-    email += f'<h1>❓Submit A Question for Issue {config["issue"]}</h1>\n'
+    email += f'<h1>Submit Your {request_type.title()} for Issue {config["issue"]}</h1>\n'
     email += f'<p>{config["text"]}</p><br/>\n'
-    email += f'<a href="{config["link"]}">Submit your question here!</p>\n'
+    email += f'<a href="{config["link"][request_type]}">Submit your {request_type} here!</p>\n'
     email += "</body><html>\n"
 
     return email
@@ -157,6 +157,7 @@ if __name__=='__main__':
     args.add_argument("-c", "--config", required=True)
     args.add_argument("-d", "--debug", action="store_true")
     args.add_argument("-q", "--question", action="store_true")
+    args.add_argument("-a", "--answer", action="store_true")
 
     args = args.parse_args()
 
@@ -173,7 +174,10 @@ if __name__=='__main__':
         config["addresses"] = [addr.replace("\n", "") for addr in addr_file.readlines()]
 
     if args.question:
-        email = generate_question_request(config)
+        email = generate_email_request(config, "question")
+        images = {}
+    elif args.answer:
+        email = generate_email_request(config, "answer")
         images = {}
     else:
         email, images = generate_newsletter(config)
