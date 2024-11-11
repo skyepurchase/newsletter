@@ -1,38 +1,65 @@
-import smtplib, ssl, csv, base64, yaml
+import os, smtplib, ssl, base64, yaml, subprocess, tempfile
+
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 from argparse import ArgumentParser
 
-#from googleapiclient.discovery import build
-#from googleapiclient.http import MediaIoBaseDownload
-#from google_auth_oauthlib.flow import InstalledAppFlow
-#from io import BytesIO
+from googleapiclient.discovery import build
+from google.auth.transport.requests import Request
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.oauth2.credentials import Credentials
+from googleapiclient.http import MediaIoBaseDownload
+from io import BytesIO
 
 PORT = 465
+EDITOR = os.environ.get('EDITOR', 'vim')
 
 
-#SCOPES = ['https://www.googleapis.com/auth/drive']
+SCOPES = [
+    'https://www.googleapis.com/auth/forms.responses.readonly',
+    'https://www.googleapis.com/auth/forms.body.readonly',
+    'https://www.googleapis.com/auth/drive'
+]
 
-#def create_service():
-#    flow = InstalledAppFlow.from_client_config('credentials.json', SCOPES)
-#    creds = flow.run_local_server(port=0)
-#    return build('drive', 'v3', credentials=creds)
-#
-#def download_file(service, file_id, file_name):
-#    request = service.files().get_media(fileId=file_id)
-#    fh = BytesIO()
-#    downloader = MediaIoBaseDownload(fd=fh, request=request)
-#
-#    done = False
-#    while not done:
-#        status, done = downloader.next_chunk()
-#        print(f"Download Progress: {int(status.progress() * 100)}")
-#
-#    fh.seek(0)
-#    with open(file_name, 'wb') as f:
-#        f.write(fh.read())
-#        f.close()
+def create_service(*args):
+    creds = None
+    if os.path.exists('token.json'):
+        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open('token.json', 'w') as token:
+            token.write(creds.to_json())
+
+    return build(*args, credentials=creds)
+
+
+def download_image(file_id):
+    service = create_service('drive', 'v3')
+    request = service.files().get_media(fileId=file_id)
+    fh = BytesIO()
+    downloader = MediaIoBaseDownload(fd=fh, request=request)
+
+    done = False
+    while not done:
+        status, done = downloader.next_chunk()
+        print(f"Download Progress: {int(status.progress() * 100)}")
+
+    fh.seek(0)
+    return fh
+
+
+def get_form_data(form_id):
+    service = create_service('forms', 'v1')
+    form = service.forms().get(formId=form_id).execute()
+    responses = service.forms().responses().list(formId=form_id).execute()
+
+    return form, responses
 
 
 def convert_image(filepath: str) -> bytes:
@@ -43,32 +70,57 @@ def convert_image(filepath: str) -> bytes:
 
 def generate_newsletter(config):
     # Get the data in a nice format
+    name_id = ""
+    caption_id = ""
+    photo_id = ""
+    ids = []
+    id_to_title = {}
+
+    # Extract google id data
+    form, answers = get_form_data(config["id"])
+    for question in form["items"]:
+        question_id = question["questionItem"]["question"]["questionId"]
+        id_to_title[question_id] = question["title"]
+
+        if question["title"] == "Name":
+            name_id = question_id
+        elif question["title"] == "✍️ Caption":
+            caption_id = question_id
+        elif question["title"] not in ["Timestamp", "❓Submit A Question"]:
+            ids.append(question_id)
+            if question["title"] == "📸 Photo Wall":
+                photo_id = question_id
+
+    # Extract responses
     image_filepaths = {}
     title_ordered_responses = {}
     captions = {}
-    with open(f'{config["folder"]}/issue_{config["issue"]}.csv') as csvfile:
-        reader = csv.DictReader(csvfile)
-        for row in reader:
-            name = row["Name"]
-            for key, item in row.items():
-                if key not in ["Name", "Timestamp", "❓Submit A Question", "✍️ Caption"]:
-                    value = item
 
-                    if key in ["📸 Photo Wall"]:
-#                        idx = item.split("id=")[-1]
-#                        image_filepaths[idx] = f"{name}.jpg"
-                        image_filepaths[name] = f'{config["folder"]}/photos_issue_{config["issue"]}/{name.lower()}.jpg'
-                        value = ""
+    for response in answers["responses"]:
+        answers = response["answers"]
 
-                    if key not in title_ordered_responses:
-                        title_ordered_responses[key] = {name: value}
-                    else:
-                        title_ordered_responses[key][name] = value
+        name = answers[name_id]["textAnswers"]["answers"][0]["value"]
 
-                if key in ["✍️ Caption"]:
-                    captions[name] = item
+        if photo_id in answers:
+            image_filepaths[name] = answers[photo_id]["fileUploadAnswers"]["answers"][0]["fileId"]
+        if caption_id in answers:
+            captions[name] = answers[caption_id]["textAnswers"]["answers"][0]["value"]
 
+        for key in ids:
+            if key not in answers:
+                continue
 
+            if key == photo_id:
+                value = ""
+            else:
+                value = answers[key]["textAnswers"]["answers"][0]["value"]
+
+            if key not in title_ordered_responses:
+                title_ordered_responses[key] = {name: value}
+            else:
+                title_ordered_responses[key][name] = value
+
+    # Construct email
     email = f"""
 <html><head>
 <meta charset="UTF-8">
@@ -79,16 +131,19 @@ def generate_newsletter(config):
     email += f'<h1>{config["name"]} Issue {config["issue"]}</h1>\n'
     email += f'<p>{config["text"]}</p>\n'
 
-    for title, responses in title_ordered_responses.items():
+    for key, responses in title_ordered_responses.items():
+        title = id_to_title[key]
         email += f"<h1>{title}</h1>\n"
         for name, response in responses.items():
             email += f"<h2>{name}</h2>\n"
 
-            if title in ["📸 Photo Wall"]:
-                caption = captions[name]
+            if key == photo_id and name in image_filepaths:
+                caption = ""
+                if name in captions:
+                    caption = captions[name]
 
-                email += f'<img src="cid:{name}" alt="{caption}" width="500px" />'
-                email += f'<p>{caption}</p>'
+                email += f'<img src="cid:{name.replace(" ", "")}" alt="{caption}" width="500px" />\n'
+                email += f'<p>{caption}</p>\n'
             else:
                 email += f"<p>{response}</p>\n"
 
@@ -132,10 +187,10 @@ def send_email(body, images, config):
     message.attach(part2)
 
     for idx, filepath in images.items():
-        with open(filepath, 'rb') as img_file:
-            msg_image = MIMEImage(img_file.read())
+        image_bytes = download_image(filepath)
+        msg_image = MIMEImage(image_bytes.read())
 
-        msg_image.add_header('Content-ID', f'<{idx}>')
+        msg_image.add_header('Content-ID', f'<{idx.replace(" ", "")}>')
         message.attach(msg_image)
 
     context = ssl.create_default_context()
@@ -169,6 +224,17 @@ if __name__=='__main__':
         except yaml.YAMLError as e:
             print(e)
             quit()
+
+    with tempfile.NamedTemporaryFile(suffix=".txt") as tf:
+        # Open editor to write message
+        tf.write(b"Time to submit your responses!") # Set up the buffer
+        tf.flush()
+        subprocess.call([EDITOR, tf.name])
+
+        # process message
+        tf.seek(0)
+        config["text"] = tf.read().decode("utf-8")
+        os.remove(tf.name)
 
     with open(f'{config["folder"]}/emails.txt', "r") as addr_file:
         config["addresses"] = [addr.replace("\n", "") for addr in addr_file.readlines()]
