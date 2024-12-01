@@ -227,7 +227,13 @@ if __name__=='__main__':
 
     with tempfile.NamedTemporaryFile(suffix=".txt") as tf:
         # Open editor to write message
-        tf.write(b"Time to submit your responses!") # Set up the buffer
+        if args.question:
+            tf.write(b"Time to submit your questions!")
+        elif args.answer:
+            tf.write(b"Time to submit your responses!")
+        else:
+            tf.write(b"Hope you have all had a wonderful month!")
+
         tf.flush()
         subprocess.call([EDITOR, tf.name])
 
