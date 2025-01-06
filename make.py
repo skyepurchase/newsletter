@@ -1,4 +1,5 @@
 import os, smtplib, ssl, base64, yaml, subprocess, tempfile
+from pprint import pprint
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -29,6 +30,7 @@ def create_service(*args):
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
+            # TODO: if the above fails delete 'token.json' and retry
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
                 'credentials.json', SCOPES)
@@ -62,6 +64,49 @@ def get_form_data(form_id):
     return form, responses
 
 
+def update_form(form_id, description, fields):
+    service = create_service('forms', 'v1')
+
+    form = service.forms().get(formId=form_id).execute()
+    # pprint(form)
+
+    # Update description and add items
+    description_update = {
+        "updateFormInfo": {
+            "info": {
+                "description": description
+            },
+            "updateMask": "description"
+        }
+    }
+    # TODO: removing hard coding
+    offset = 1
+    items = [
+        {
+            "createItem": {
+                "item": {
+                    "title": field["title"],
+                    "questionItem": {
+                        "question": {
+                            "required": field["required"],
+                            field["type"]: field["body"]
+                        }
+                    }
+                },
+                "location": { "index": i + offset }
+            }
+        }
+        for i, field in enumerate(fields)
+    ]
+    items = [description_update] + items
+
+    update = {
+        "requests": items
+    }
+
+    #service.forms().batchUpdate(formId=form_id, body=update).execute()
+
+
 def convert_image(filepath: str) -> bytes:
     with open(filepath, "rb") as img_file:
         encoded_string = base64.b64encode(img_file.read())
@@ -69,6 +114,8 @@ def convert_image(filepath: str) -> bytes:
 
 
 def generate_newsletter(config):
+    # TODO: Move the below block into get_form_data
+    # ---
     # Get the data in a nice format
     name_id = ""
     caption_id = ""
@@ -77,7 +124,7 @@ def generate_newsletter(config):
     id_to_title = {}
 
     # Extract google id data
-    form, answers = get_form_data(config["id"])
+    form, answers = get_form_data(config["id"]["answer"])
     for question in form["items"]:
         question_id = question["questionItem"]["question"]["questionId"]
         id_to_title[question_id] = question["title"]
@@ -119,6 +166,7 @@ def generate_newsletter(config):
                 title_ordered_responses[key] = {name: value}
             else:
                 title_ordered_responses[key][name] = value
+    # ---
 
     # Construct email
     email = f"""
@@ -249,9 +297,24 @@ if __name__=='__main__':
         email = generate_email_request(config, "question")
         images = {}
     elif args.answer:
+        fields = [
+            {
+                "title": "Name Test",
+                "type": "textQuestion",
+                "body": { "paragraph": False },
+                "required": True
+            },
+            {
+                "title": "Question Test",
+                "type": "textQuestion",
+                "body": { "paragraph": False },
+                "required": True
+            }
+        ]
+        update_form(config["id"]["answer"], "This is a test", fields)
         email = generate_email_request(config, "answer")
         images = {}
     else:
         email, images = generate_newsletter(config)
 
-    send_email(email, images, config)
+    #send_email(email, images, config)
