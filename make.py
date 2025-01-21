@@ -267,8 +267,10 @@ if __name__=='__main__':
     with open(args.config) as config_file:
         try:
             config = yaml.safe_load(config_file)
+            old_config = copy.deepcopy(config)
             config["password"] = args.password
             config["debug"] = args.debug
+            config["filename"] = args.config
         except yaml.YAMLError as e:
             print(e)
             quit()
@@ -316,5 +318,9 @@ if __name__=='__main__':
         images = {}
     else:
         email, images = generate_newsletter(config)
+        if not config["debug"]:
+            old_config["issue"] += 1
+            with open(config["filename"], 'w') as f:
+                yaml.dump(old_config, f, default_flow_style=False)
 
-    #send_email(email, images, config)
+    send_email(email, images, config)
