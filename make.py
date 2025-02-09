@@ -1,4 +1,5 @@
-import os, smtplib, ssl, base64, yaml, subprocess, tempfile
+import os, yaml, subprocess, tempfile, copy
+import smtplib, ssl, base64
 from pprint import pprint
 
 from email.mime.text import MIMEText
@@ -29,12 +30,19 @@ def create_service(*args):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-            # TODO: if the above fails delete 'token.json' and retry
+            try:
+                creds.refresh(Request())
+            except:
+                print("Token failed, regenerating token")
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    'credentials.json', SCOPES)
+                creds = flow.run_local_server(port=0)
+
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
                 'credentials.json', SCOPES)
             creds = flow.run_local_server(port=0)
+
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
 
