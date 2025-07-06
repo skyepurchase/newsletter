@@ -67,72 +67,14 @@ def download_image(file_id):
 def get_form_data(form_id):
     service = create_service('forms', 'v1')
     form = service.forms().get(formId=form_id).execute()
-    responses = service.forms().responses().list(formId=form_id).execute()
+    answers = service.forms().responses().list(formId=form_id).execute()
 
-    return form, responses
-
-
-def update_form(form_id, description, fields):
-    service = create_service('forms', 'v1')
-
-    form = service.forms().get(formId=form_id).execute()
-    # pprint(form)
-
-    # Update description and add items
-    description_update = {
-        "updateFormInfo": {
-            "info": {
-                "description": description
-            },
-            "updateMask": "description"
-        }
-    }
-    # TODO: removing hard coding
-    offset = 1
-    items = [
-        {
-            "createItem": {
-                "item": {
-                    "title": field["title"],
-                    "questionItem": {
-                        "question": {
-                            "required": field["required"],
-                            field["type"]: field["body"]
-                        }
-                    }
-                },
-                "location": { "index": i + offset }
-            }
-        }
-        for i, field in enumerate(fields)
-    ]
-    items = [description_update] + items
-
-    update = {
-        "requests": items
-    }
-
-    #service.forms().batchUpdate(formId=form_id, body=update).execute()
-
-
-def convert_image(filepath: str) -> bytes:
-    with open(filepath, "rb") as img_file:
-        encoded_string = base64.b64encode(img_file.read())
-        return encoded_string
-
-
-def generate_newsletter(config):
-    # TODO: Move the below block into get_form_data
-    # ---
-    # Get the data in a nice format
     name_id = ""
     caption_id = ""
     photo_id = ""
     ids = []
     id_to_title = {}
 
-    # Extract google id data
-    form, answers = get_form_data(config["id"]["answer"])
     for question in form["items"]:
         question_id = question["questionItem"]["question"]["questionId"]
         id_to_title[question_id] = question["title"]
@@ -141,7 +83,7 @@ def generate_newsletter(config):
             name_id = question_id
         elif question["title"] == "✍️ Caption":
             caption_id = question_id
-        elif question["title"] not in ["Timestamp", "❓Submit A Question"]:
+        elif question["title"] != "Timestamp":
             ids.append(question_id)
             if question["title"] == "📸 Photo Wall":
                 photo_id = question_id
@@ -174,7 +116,117 @@ def generate_newsletter(config):
                 title_ordered_responses[key] = {name: value}
             else:
                 title_ordered_responses[key][name] = value
-    # ---
+
+    return (
+        title_ordered_responses,
+        id_to_title,
+        image_filepaths,
+        photo_id,
+        captions
+    )
+
+
+def update_form(form_id, questions):
+    # Get current form
+    service = create_service('forms', 'v1')
+    form = service.forms().get(formId=form_id).execute()
+
+    # Delete old questions
+    requests = []
+    for i, question in enumerate(form['items']):
+        # TODO: Don't hard code this
+        if question['title'] not in [
+            "Name",
+            "🌤 One Good Thing",
+            "💭 On Your Mind",
+            "👀 Check It Out",
+            "📸 Photo Wall",
+            "✍️ Caption"
+        ]:
+            requests.append({
+                "deleteItem": {
+                    "location": { "index": i }
+                }
+            })
+
+    # Add new questions
+    for i, question in enumerate(questions):
+        # TODO: More flexible approach?
+        request = {
+            "createItem": {
+                "item": {
+                    "title": question,
+                    "questionItem": {
+                        "question": {
+                            "required": False,
+                            "textQuestion": {
+                                "paragraph": True
+                            }
+                        }
+                    }
+                },
+                "location": { "index": i+1 }
+            }
+        }
+        requests.append(request)
+
+    requests.append({
+        "updateFormInfo": {
+            "info": {
+                "description": "To be sent out soon ~still working on getting this fully dynamic~"
+            },
+            "updateMask": "description"
+        }
+    })
+
+    update = {
+        # TODO: Might be worth keeping a list of deletable ids
+        "includeFormInResponse": False,
+        "requests": requests
+    }
+
+    service.forms().batchUpdate(
+        formId=form_id, body=update
+    ).execute()
+
+
+def get_questions(form_id):
+    service = create_service('forms', 'v1')
+    form = service.forms().get(formId=form_id).execute()
+    question_request = service.forms().responses().list(formId=form_id).execute()
+
+    name_id = ""
+    text_id = ""
+
+    id_to_title = {}
+    for response_temp in form["items"]:
+        curr_id = response_temp["questionItem"]["question"]["questionId"]
+        id_to_title[curr_id] = response_temp["title"]
+
+        if response_temp["title"] == "Name":
+            name_id = curr_id
+        elif response_temp["title"] == "Question":
+            text_id = curr_id
+
+    questions = []
+    for reponse in question_request["responses"]:
+        question = reponse["answers"]
+
+        name = question[name_id]["textAnswers"]["answers"][0]["value"].rstrip()
+        text = question[text_id]["textAnswers"]["answers"][0]["value"]
+        questions.append(f"{name}: {text}")
+
+    return questions
+
+
+def convert_image(filepath: str) -> bytes:
+    with open(filepath, "rb") as img_file:
+        encoded_string = base64.b64encode(img_file.read())
+        return encoded_string
+
+
+def generate_newsletter(config):
+    ordered_responses, id_to_title, image_paths, photo_id, captions = get_form_data(config["id"]["answer"])
 
     # Construct email
     email = f"""
@@ -187,13 +239,13 @@ def generate_newsletter(config):
     email += f'<h1>{config["name"]} Issue {config["issue"]}</h1>\n'
     email += f'<p>{config["text"]}</p>\n'
 
-    for key, responses in title_ordered_responses.items():
+    for key, responses in ordered_responses.items():
         title = id_to_title[key]
         email += f"<h1>{title}</h1>\n"
         for name, response in responses.items():
             email += f"<h2>{name}</h2>\n"
 
-            if key == photo_id and name in image_filepaths:
+            if key == photo_id and name in image_paths:
                 caption = ""
                 if name in captions:
                     caption = captions[name]
@@ -205,7 +257,7 @@ def generate_newsletter(config):
 
     email += "</body><html>\n"
 
-    return email, image_filepaths
+    return email, image_paths
 
 
 def generate_email_request(config, request_type: str):
@@ -307,21 +359,8 @@ if __name__=='__main__':
         email = generate_email_request(config, "question")
         images = {}
     elif args.answer:
-        fields = [
-            {
-                "title": "Name Test",
-                "type": "textQuestion",
-                "body": { "paragraph": False },
-                "required": True
-            },
-            {
-                "title": "Question Test",
-                "type": "textQuestion",
-                "body": { "paragraph": False },
-                "required": True
-            }
-        ]
-        update_form(config["id"]["answer"], "This is a test", fields)
+        questions = get_questions(config["id"]["question"])
+        #update_form(config["id"]["answer"], questions)
         email = generate_email_request(config, "answer")
         images = {}
     else:
