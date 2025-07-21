@@ -1,5 +1,6 @@
 import os, yaml, subprocess, tempfile, copy
 import smtplib, ssl, base64
+from datetime import datetime
 from pprint import pprint
 
 from email.mime.text import MIMEText
@@ -16,6 +17,7 @@ from io import BytesIO
 
 PORT = 465
 EDITOR = os.environ.get('EDITOR', 'vim')
+FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
 
 
 SCOPES = [
@@ -23,6 +25,7 @@ SCOPES = [
     'https://www.googleapis.com/auth/forms.body.readonly',
     'https://www.googleapis.com/auth/drive'
 ]
+
 
 def create_service(*args):
     creds = None
@@ -148,6 +151,8 @@ def update_form(form_id, questions):
                     "location": { "index": i }
                 }
             })
+    # Delete such that indices don't get messed up
+    requests.reverse()
 
     # Add new questions
     for i, question in enumerate(questions):
@@ -180,7 +185,6 @@ def update_form(form_id, questions):
     })
 
     update = {
-        # TODO: Might be worth keeping a list of deletable ids
         "includeFormInResponse": False,
         "requests": requests
     }
@@ -209,8 +213,20 @@ def get_questions(form_id):
             text_id = curr_id
 
     questions = []
-    for reponse in question_request["responses"]:
-        question = reponse["answers"]
+    for response in question_request["responses"]:
+        # Skip question sent before the recent call for questions
+        last_date = datetime.strptime(
+            #TODO: don't hard code this
+            "2025-07-01T00:00:00.000000Z", FORMAT
+        )
+        date = datetime.strptime(
+            response['lastSubmittedTime'],
+            FORMAT
+        )
+        if date < last_date:
+            continue
+
+        question = response["answers"]
 
         name = question[name_id]["textAnswers"]["answers"][0]["value"].rstrip()
         text = question[text_id]["textAnswers"]["answers"][0]["value"]
@@ -364,7 +380,7 @@ if __name__=='__main__':
         images = {}
     elif args.answer:
         questions = get_questions(config["id"]["question"])
-        #update_form(config["id"]["answer"], questions)
+        update_form(config["id"]["answer"], questions)
         email = generate_email_request(config, "answer")
         images = {}
     else:
