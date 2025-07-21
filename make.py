@@ -269,8 +269,12 @@ def generate_email_request(config, request_type: str):
 <title>{config["name"]}</title>
 </head><body>\n"""
     email += f'<h1>Submit Your {request_type.title()} for Issue {config["issue"]}</h1>\n'
-    email += f'<p>{config["text"]}</p><br/>\n'
-    email += f'<a href="{config["link"][request_type]}">Submit your {request_type} here!</p>\n'
+    email += f'<p>{config["text"]}</p>\n'
+    email += f"""
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; text-align: center; padding: 20px;">
+        <a href={config["link"][request_type]} target="_blank" rel="noopener noreferrer" style="background-color: #6272a4; color: white; border: none; padding: 16px 32px; font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; text-transform: none; letter-spacing: 0.5px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-decoration: none; display: inline-block; text-align: center;">Submit {request_type.capitalize()}s</a>
+</div>
+"""
     email += "</body><html>\n"
 
     return email
