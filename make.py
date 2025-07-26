@@ -17,7 +17,8 @@ from io import BytesIO
 
 PORT = 465
 EDITOR = os.environ.get('EDITOR', 'vim')
-FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
+FORM_TIME_FORMAT = "%Y-%m-%dT%H:%M:%S.%fZ"
+CONFIG_TIME_FORMAT = "%Y%m%d"
 
 
 SCOPES = [
@@ -67,7 +68,12 @@ def download_image(file_id):
     return fh
 
 
-def get_form_data(form_id):
+def get_form_data(form_id, cutoff):
+    cutoff_date = datetime.strptime(
+        cutoff,
+        CONFIG_TIME_FORMAT
+    )
+
     service = create_service('forms', 'v1')
     form = service.forms().get(formId=form_id).execute()
     answers = service.forms().responses().list(formId=form_id).execute()
@@ -97,6 +103,13 @@ def get_form_data(form_id):
     captions = {}
 
     for response in answers["responses"]:
+        date = datetime.strptime(
+            response['lastSubmittedTime'],
+            FORM_TIME_FORMAT
+        )
+        if date < cutoff_date:
+            continue
+
         answers = response["answers"]
 
         name = answers[name_id]["textAnswers"]["answers"][0]["value"]
@@ -194,7 +207,12 @@ def update_form(form_id, questions):
     ).execute()
 
 
-def get_questions(form_id):
+def get_questions(form_id, cutoff):
+    cutoff_date = datetime.strptime(
+        cutoff,
+        CONFIG_TIME_FORMAT
+    )
+
     service = create_service('forms', 'v1')
     form = service.forms().get(formId=form_id).execute()
     question_request = service.forms().responses().list(formId=form_id).execute()
@@ -215,15 +233,11 @@ def get_questions(form_id):
     questions = []
     for response in question_request["responses"]:
         # Skip question sent before the recent call for questions
-        last_date = datetime.strptime(
-            #TODO: don't hard code this
-            "2025-07-01T00:00:00.000000Z", FORMAT
-        )
         date = datetime.strptime(
             response['lastSubmittedTime'],
-            FORMAT
+            FORM_TIME_FORMAT
         )
-        if date < last_date:
+        if date < cutoff_date:
             continue
 
         question = response["answers"]
@@ -242,7 +256,10 @@ def convert_image(filepath: str) -> bytes:
 
 
 def generate_newsletter(config):
-    ordered_responses, id_to_title, image_paths, photo_id, captions = get_form_data(config["id"]["answer"])
+    ordered_responses, id_to_title, image_paths, photo_id, captions = get_form_data(
+        config["id"]["answer"],
+        config["cutoff"]["answer"]
+    )
 
     # Construct email
     email = f"""
@@ -378,13 +395,27 @@ if __name__=='__main__':
     if args.question:
         email = generate_email_request(config, "question")
         images = {}
+
+        if not config["debug"]:
+            old_config["cutoff"]["question"] = datetime.strftime(
+                datetime.now(), FORM_TIME_FORMAT
+            )
     elif args.answer:
-        questions = get_questions(config["id"]["question"])
+        questions = get_questions(
+            config["id"]["question"],
+            config["cutoff"]["question"]
+        )
         update_form(config["id"]["answer"], questions)
         email = generate_email_request(config, "answer")
         images = {}
+
+        if not config["debug"]:
+            old_config["cutoff"]["answer"] = datetime.strftime(
+                datetime.now(), FORM_TIME_FORMAT
+            )
     else:
         email, images = generate_newsletter(config)
+
         if not config["debug"]:
             old_config["issue"] += 1
             with open(config["filename"], 'w') as f:
