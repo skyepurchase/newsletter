@@ -1,4 +1,5 @@
 import os
+import sys
 from datetime import datetime
 
 from googleapiclient.discovery import build
@@ -20,24 +21,33 @@ SCOPES = [
 ]
 
 
-def create_service(*args):
+def create_service(*args, isManual):
     creds = None
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             try:
                 creds.refresh(Request())
             except:
-                print("Token failed, regenerating token")
+                if isManual:
+                    print("[WARN] Token failed, regenerating token...")
+                    flow = InstalledAppFlow.from_client_secrets_file(
+                        'credentials.json', SCOPES)
+                    creds = flow.run_local_server(port=0)
+                else:
+                    print("[WARN] Token failed! Regenerate token and manually rerun script.")
+                    sys.exit(126)
+
+        else:
+            if isManual:
                 flow = InstalledAppFlow.from_client_secrets_file(
                     'credentials.json', SCOPES)
                 creds = flow.run_local_server(port=0)
-
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
+            else:
+                print("[WARN] Token failed! Regenerate token and manually rerun script.")
+                sys.exit(126)
 
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
@@ -45,13 +55,13 @@ def create_service(*args):
     return build(*args, credentials=creds)
 
 
-def get_form_data(form_id: str, cutoff: str):
+def get_form_data(form_id: str, cutoff: str, isManual: bool):
     cutoff_date = datetime.strptime(
         cutoff,
         CONFIG_TIME_FORMAT
     )
 
-    service = create_service('forms', 'v1')
+    service = create_service('forms', 'v1', isManual=isManual)
     form = service.forms().get(formId=form_id).execute()
     answers = service.forms().responses().list(formId=form_id).execute()
 
@@ -119,13 +129,13 @@ def get_form_data(form_id: str, cutoff: str):
     )
 
 
-def get_questions(form_id: str, cutoff: str) -> list[str]:
+def get_questions(form_id: str, cutoff: str, isManual: bool) -> list[str]:
     cutoff_date = datetime.strptime(
         cutoff,
         CONFIG_TIME_FORMAT
     )
 
-    service = create_service('forms', 'v1')
+    service = create_service('forms', 'v1', isManual=isManual)
     form = service.forms().get(formId=form_id).execute()
     question_request = service.forms().responses().list(formId=form_id).execute()
 
@@ -161,9 +171,9 @@ def get_questions(form_id: str, cutoff: str) -> list[str]:
     return questions
 
 
-def update_form(form_id: str, questions: list[str]) -> None:
+def update_form(form_id: str, questions: list[str], isManual: bool) -> None:
     # Get current form
-    service = create_service('forms', 'v1')
+    service = create_service('forms', 'v1', isManual=isManual)
     form = service.forms().get(formId=form_id).execute()
 
     # Delete old questions
@@ -226,8 +236,8 @@ def update_form(form_id: str, questions: list[str]) -> None:
     ).execute()
 
 
-def download_image(file_id: str) -> BytesIO:
-    service = create_service('drive', 'v3')
+def download_image(file_id: str, isManual: bool) -> BytesIO:
+    service = create_service('drive', 'v3', isManual=isManual)
     request = service.files().get_media(fileId=file_id)
     fh = BytesIO()
     downloader = MediaIoBaseDownload(fd=fh, request=request)
@@ -235,7 +245,7 @@ def download_image(file_id: str) -> BytesIO:
     done = False
     while not done:
         status, done = downloader.next_chunk()
-        print(f"Download Progress: {int(status.progress() * 100)}")
+        print(f"[INFO] Download Progress: {int(status.progress() * 100)}")
 
     fh.seek(0)
     return fh

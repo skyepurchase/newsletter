@@ -13,6 +13,7 @@ class NewsletterConfig:
     isQuestion: bool
     isAnswer: bool
     isSend: bool
+    isManual: bool
 
     name: str
     email: str

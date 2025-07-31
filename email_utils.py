@@ -20,7 +20,8 @@ def convert_image(filepath: str) -> bytes:
 def generate_newsletter(config: NewsletterConfig) -> tuple[str, dict]:
     ordered_responses, id_to_title, image_paths, photo_id, captions = get_form_data(
         config.answer.id,
-        config.answer.cutoff
+        config.answer.cutoff,
+        config.isManual
     )
 
     # Construct email
@@ -98,7 +99,7 @@ def send_email(body, images, config):
     message.attach(part2)
 
     for idx, filepath in images.items():
-        image_bytes = download_image(filepath)
+        image_bytes = download_image(filepath, config.isManual)
         msg_image = MIMEImage(image_bytes.read())
 
         msg_image.add_header('Content-ID', f'<{idx.replace(" ", "")}>')

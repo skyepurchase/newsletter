@@ -1,4 +1,5 @@
 import os, yaml, subprocess, tempfile, copy
+import sys
 from datetime import datetime
 
 from email_utils import (
@@ -18,27 +19,30 @@ CONFIG_TIME_FORMAT = "%Y%m%d"
 
 
 def main(config: NewsletterConfig) -> NewsletterConfig:
-    with tempfile.NamedTemporaryFile(suffix=".txt") as tf:
-        # Open editor to write message
-        if config.question:
-            tf.write(b"Time to submit your questions!")
-        elif config.answer:
-            tf.write(b"Time to submit your responses!")
-        else:
-            tf.write(b"Hope you have all had a wonderful month!")
+    if config.isQuestion:
+        config.text = "Time to submit your questions!"
+    elif config.isAnswer:
+        config.text = "Time to submit your responses!"
+    elif config.isSend:
+        config.text = "Hope you have all had a wonderful month!"
 
-        tf.flush()
-        subprocess.call([EDITOR, tf.name])
+    if config.isManual:
+        with tempfile.NamedTemporaryFile(suffix=".txt") as tf:
+            # Open editor to write message
+            tf.write(config.text.encode('utf-8'))
+            tf.flush()
+            subprocess.call([EDITOR, tf.name])
 
-        # process message
-        tf.seek(0)
-        config.text = tf.read().decode("utf-8")
-        os.remove(tf.name)
+            # process message
+            tf.seek(0)
+            config.text = tf.read().decode("utf-8")
+            os.remove(tf.name)
 
     with open(f'{config.folder}/emails.txt', "r") as addr_file:
         config.addresses = [addr.replace("\n", "") for addr in addr_file.readlines()]
 
-    if config.question:
+    if config.isQuestion:
+        print(f"[INFO] Question Request for {config.name}")
         email = generate_email_request(
             config, "question",
             config.question.link
@@ -48,12 +52,18 @@ def main(config: NewsletterConfig) -> NewsletterConfig:
         config.question.cutoff = datetime.strftime(
             datetime.now(), CONFIG_TIME_FORMAT
         )
-    elif config.answer:
+    elif config.isAnswer:
+        print(f"[INFO] Answer Request for {config.name}")
         questions = get_questions(
             config.question.id,
-            config.question.cutoff
+            config.question.cutoff,
+            config.isManual
         )
-        update_form(config.answer.id, questions)
+        update_form(
+            config.answer.id,
+            questions,
+            config.isManual
+        )
         email = generate_email_request(
             config, "answer",
             config.answer.link
@@ -63,9 +73,13 @@ def main(config: NewsletterConfig) -> NewsletterConfig:
         config.answer.cutoff = datetime.strftime(
             datetime.now(), CONFIG_TIME_FORMAT
         )
-    else:
+    elif config.isSend:
+        print(f"[INFO] Publishing {config.name}")
         email, images = generate_newsletter(config)
         config.issue += 1
+    else:
+        print(f"[WARN] Illegal config file submitted!")
+        sys.exit(2)
 
     send_email(email, images, config)
     return config
@@ -80,6 +94,7 @@ if __name__=='__main__':
     args.add_argument("-d", "--debug", action="store_true")
     args.add_argument("-q", "--question", action="store_true")
     args.add_argument("-a", "--answer", action="store_true")
+    args.add_argument("-m", "--manual", action="store_true")
 
     args = args.parse_args()
 
@@ -88,8 +103,9 @@ if __name__=='__main__':
             config = yaml.safe_load(config_file)
             old_config = copy.deepcopy(config)
         except yaml.YAMLError as e:
+            print("[WARN] An error occurred opening the YAML configuration.")
             print(e)
-            quit()
+            sys.exit(1)
 
     question_config = FormConfig(**config["question"])
     answer_config = FormConfig(**config["answer"])
@@ -98,6 +114,7 @@ if __name__=='__main__':
         isQuestion=args.question,
         isAnswer=args.answer,
         isSend=not(args.answer or args.question),
+        isManual=args.manual,
         password=args.password,
         debug=args.debug,
         name=config["name"],
