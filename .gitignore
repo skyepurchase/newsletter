@@ -6,3 +6,6 @@ venv/
 # Ideally don't want to have to ignore
 cornerly_news/
 spot_of_news/
+
+# Python
+__pycache__/
