@@ -1,5 +1,4 @@
-import os
-import sys
+import os, sys, logging
 from datetime import datetime
 
 from googleapiclient.discovery import build
@@ -21,6 +20,9 @@ SCOPES = [
 ]
 
 
+logger = logging.getLogger(__name__)
+
+
 def create_service(*args, isManual):
     creds = None
     if os.path.exists('token.json'):
@@ -32,12 +34,12 @@ def create_service(*args, isManual):
                 creds.refresh(Request())
             except:
                 if isManual:
-                    print("[WARN] Token failed, regenerating token...")
+                    logger.warning("Token failed, regenerating token...")
                     flow = InstalledAppFlow.from_client_secrets_file(
                         'credentials.json', SCOPES)
                     creds = flow.run_local_server(port=0)
                 else:
-                    print("[WARN] Token failed! Regenerate token and manually rerun script.")
+                    logger.warning("Token failed! Regenerate token and manually rerun script.")
                     sys.exit(126)
 
         else:
@@ -46,7 +48,7 @@ def create_service(*args, isManual):
                     'credentials.json', SCOPES)
                 creds = flow.run_local_server(port=0)
             else:
-                print("[WARN] Token failed! Regenerate token and manually rerun script.")
+                logger.warning("Token failed! Regenerate token and manually rerun script.")
                 sys.exit(126)
 
         with open('token.json', 'w') as token:
@@ -245,7 +247,7 @@ def download_image(file_id: str, isManual: bool) -> BytesIO:
     done = False
     while not done:
         status, done = downloader.next_chunk()
-        print(f"[INFO] Download Progress: {int(status.progress() * 100)}")
+        logger.info(f"Download Progress: {int(status.progress() * 100)}")
 
     fh.seek(0)
     return fh

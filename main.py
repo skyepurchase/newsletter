@@ -1,5 +1,4 @@
-import os, yaml, subprocess, tempfile, copy
-import sys
+import os, yaml, subprocess, tempfile, copy, sys, logging
 from datetime import datetime
 
 from email_utils import (
@@ -16,9 +15,21 @@ from type_hints import FormConfig, NewsletterConfig
 
 EDITOR = os.environ.get('EDITOR', 'vim')
 CONFIG_TIME_FORMAT = "%Y%m%d"
+LOG_TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
+
+
+logger = logging.getLogger(__name__)
 
 
 def main(config: NewsletterConfig) -> NewsletterConfig:
+    debug = " DEBUG" if config.debug else ""
+    logging.basicConfig(
+        format=f'%(asctime)s %(levelname)s{debug}: %(message)s',
+        filename=os.path.join(config.folder, "out.log"),
+        level=logging.INFO,
+        datefmt=LOG_TIME_FORMAT
+    )
+
     if config.isQuestion:
         config.text = "Time to submit your questions!"
     elif config.isAnswer:
@@ -42,7 +53,7 @@ def main(config: NewsletterConfig) -> NewsletterConfig:
         config.addresses = [addr.replace("\n", "") for addr in addr_file.readlines()]
 
     if config.isQuestion:
-        print(f"[INFO] Question Request for {config.name}")
+        logger.info(f"Question request")
         email = generate_email_request(
             config, "question",
             config.question.link
@@ -53,7 +64,7 @@ def main(config: NewsletterConfig) -> NewsletterConfig:
             datetime.now(), CONFIG_TIME_FORMAT
         )
     elif config.isAnswer:
-        print(f"[INFO] Answer Request for {config.name}")
+        logger.info(f"Answer request")
         questions = get_questions(
             config.question.id,
             config.question.cutoff,
@@ -74,11 +85,11 @@ def main(config: NewsletterConfig) -> NewsletterConfig:
             datetime.now(), CONFIG_TIME_FORMAT
         )
     elif config.isSend:
-        print(f"[INFO] Publishing {config.name}")
+        logger.info(f"Publishing")
         email, images = generate_newsletter(config)
         config.issue += 1
     else:
-        print(f"[WARN] Illegal config file submitted!")
+        logger.warning(f"Illegal config file submitted!")
         sys.exit(2)
 
     send_email(email, images, config)
@@ -103,8 +114,8 @@ if __name__=='__main__':
             config = yaml.safe_load(config_file)
             old_config = copy.deepcopy(config)
         except yaml.YAMLError as e:
-            print("[WARN] An error occurred opening the YAML configuration.")
-            print(e)
+            logger.warning("An error occurred opening the YAML configuration.")
+            logger.warning(e)
             sys.exit(1)
 
     question_config = FormConfig(**config["question"])
