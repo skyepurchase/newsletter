@@ -31,11 +31,11 @@ def main(config: NewsletterConfig) -> NewsletterConfig:
     )
 
     if config.isQuestion:
-        config.text = "Time to submit your questions!"
+        config.text = "Time to submit your questions! This email was sent by a bot."
     elif config.isAnswer:
-        config.text = "Time to submit your responses!"
+        config.text = "Time to submit your responses! This email was sent by a bot."
     elif config.isSend:
-        config.text = "Hope you have all had a wonderful month!"
+        config.text = "Hope you have all had a wonderful month! This email was sent by a bot."
 
     if config.isManual:
         with tempfile.NamedTemporaryFile(suffix=".txt") as tf:
