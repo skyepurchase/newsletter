@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE-edge">
+    <meta name="viewpoint" content="width=device.width, initial-scale=1.0">
+    <title>Newsletter</title>
+    <link rel="stylesheet" href="./css/style.css" />
+    <!--fav-icon-->
+</head>
+
+<body>
+    <section class="main">
+        <!--navigation {{{-->
+        <nav>
+            <!--logo-->
+            <a href="../../index.html" class="logo">
+                <p>Home</p>
+            </a>
+            <input class="menu-btn" type="checkbox" id="menu-btn" />
+            <label class="menu-icon" for="menu-btn">
+                <span class="nav-icon"></span>
+            </label>
+            <!--menu-->
+            <ul class="menu">
+                <li><a href="../index.html">Projects</a></li>
+                <li><a href="../../blog/index.html" class="blog">Blog</a></li>
+            </ul>
+        </nav>
+        <!--}}}-->
+
+        <!--form {{{ -->
+        <div class="container">
+            <div class="content">
+                <form class="newsletter" action="./newsletter.py">
+                    <div class="title"><h1>Newsletter</h1></div>
+                    <p>This is a dummy form. To see your relevant $NEWSLETTER_NAME form submit the relevant passcode below.</p>
+                    <div class="passcode-btn">
+                        <input type="text" name="unlock" placeholder="passcode" id="unlock-code"/><input type="submit" value="Unlock"/>
+                    </div>
+                    <label for="name">🏷 Name</label><br>
+                    <textarea type="text" id="name" name="name" wrap="soft"></textarea><br>
+
+                    <label for="ogt">⛅ One Good Thing</label><br>
+                    <textarea type="text" id="ogt" name="ogt" wrap="soft"></textarea><br>
+
+                    <label for="cio">👀 Check It Out</label><br>
+                    <textarea type="text" id="cio" name="cio" wrap="soft"></textarea><br>
+
+                    <label for="image">📸 Photo Wall</label><br>
+                    <label class="file-upload">
+                        <input type="file" id="image" name="image">
+                            <div>Upload image</div>
+                            <p id="filename"></p>
+                    </label>
+                    <textarea type="text" id="caption" name="caption" placeholder="✍️ Caption" wrap="soft"></textarea><br>
+                </form>
+            </div>
+        </div>
+        <!--}}}-->
+    </section>
+</body>
+
+</html>
