@@ -5,9 +5,9 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE-edge">
     <meta name="viewpoint" content="width=device.width, initial-scale=1.0">
-    <title>Submit a Question</title>
-    <link rel="stylesheet" href="./css/style.css" />
-    <!--fav-icon-->
+    <title>[TITLE]</title>
+    <link rel="icon" type="image/x-icon" href="../images/favicon.ico">
+    <link rel="stylesheet" href="../css/newsletter.css" />
 </head>
 
 <body>
@@ -15,17 +15,13 @@
         <!--navigation {{{-->
         <nav>
             <!--logo-->
-            <a href="../../index.html" class="logo">
+            <a href="../" class="logo">
                 <p>Home</p>
             </a>
-            <input class="menu-btn" type="checkbox" id="menu-btn" />
-            <label class="menu-icon" for="menu-btn">
-                <span class="nav-icon"></span>
-            </label>
             <!--menu-->
             <ul class="menu">
-                <li><a href="../index.html">Projects</a></li>
-                <li><a href="../../blog/index.html" class="blog">Blog</a></li>
+                <li><a href="../projects/">Projects</a></li>
+                <li><a href="../blog/" class="blog">Blog</a></li>
             </ul>
         </nav>
         <!--}}}-->
@@ -34,16 +30,16 @@
         <div class="container">
             <div class="content">
                 <form class="newsletter" action="./newsletter.py">
-                    <div class="title"><h1>Submit a Question</h1></div>
+                    <div class="title"><h1>Submit a Question for [TITLE]</h1></div>
                     <label for="name">🏷️ Name</label><br>
                     <textarea type="text" id="name" name="name" wrap="soft"></textarea><br>
 
                     <label for="question">❓ Question</label><br>
                     <textarea type="text" id="question" name="question" wrap="soft"></textarea><br>
 
-                    <div class="passcode-btn">
-                        <input type="text" name="code" placeholder="passcode" id="submit-code"/><input type="submit" value="Submit"/>
-                    </div>
+                    <!--Keep the already passed code-->
+                    <input style="display: none;" name="unlock" value="[PASSCODE]"/>
+                    <input type="submit" value="Submit"/>
                 </form>
             </div>
         </div>

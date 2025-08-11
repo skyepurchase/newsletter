@@ -6,8 +6,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE-edge">
     <meta name="viewpoint" content="width=device.width, initial-scale=1.0">
     <title>Newsletter</title>
-    <link rel="stylesheet" href="./css/style.css" />
-    <!--fav-icon-->
+    <link rel="icon" type="image/x-icon" href="../../images/favicon.ico">
+    <link rel="stylesheet" href="../../css/newsletter.css" />
 </head>
 
 <body>
@@ -18,10 +18,6 @@
             <a href="../../index.html" class="logo">
                 <p>Home</p>
             </a>
-            <input class="menu-btn" type="checkbox" id="menu-btn" />
-            <label class="menu-icon" for="menu-btn">
-                <span class="nav-icon"></span>
-            </label>
             <!--menu-->
             <ul class="menu">
                 <li><a href="../index.html">Projects</a></li>
@@ -33,10 +29,10 @@
         <!--form {{{ -->
         <div class="container">
             <div class="content">
-                <form class="newsletter" action="./newsletter.py">
+                <form class="newsletter" action="../../cgi-bin/newsletter.py">
                     <div class="title"><h1>Newsletter</h1></div>
                     <p>This is a dummy form. To see your relevant $NEWSLETTER_NAME form submit the relevant passcode below.</p>
-                    <div class="passcode-btn">
+                   <div class="passcode-btn">
                         <input type="text" name="unlock" placeholder="passcode" id="unlock-code"/><input type="submit" value="Unlock"/>
                     </div>
                     <label for="name">🏷️ Name</label><br>
