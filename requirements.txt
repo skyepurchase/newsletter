@@ -11,6 +11,7 @@ greenlet==3.1.1
 httplib2==0.22.0
 idna==3.10
 msgpack==1.1.0
+mysql-connector-python==9.4.0
 neovim==0.3.1
 oauthlib==3.2.2
 proto-plus==1.25.0
