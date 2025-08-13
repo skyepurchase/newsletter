@@ -1,9 +1,8 @@
 from getpass import getpass
 from argparse import ArgumentParser
 
-import mysql.connector
-
 from utils import hash_passcode
+from database import create_newsletter
 
 
 if __name__=='__main__':
@@ -14,19 +13,4 @@ if __name__=='__main__':
     passcode = getpass("Passcode: ")
     pass_hash = hash_passcode(passcode)
 
-    db_passwd = getpass("Database password: ")
-
-    mydb = mysql.connector.connect(
-        host="localhost",
-        user="atp45",
-        password=db_passwd,
-        database="atp45/newsletter"
-    )
-
-    mycursor = mydb.cursor()
-
-    sql = "INSERT INTO newsletters (title, passcode) VALUES (%s, %s);"
-    val = (args.title, pass_hash)
-    mycursor.execute(sql, val)
-
-    mydb.commit()
+    create_newsletter(args.title, pass_hash)

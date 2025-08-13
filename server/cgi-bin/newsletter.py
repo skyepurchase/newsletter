@@ -1,19 +1,14 @@
 #!/usr/bin/python3
 
 import os
-import json
-
-import mysql.connector
 
 from utils import verify, format_html
 from http_lib import HttpResponse, params, wrap
+from database import get_newsletters
 
 
 DIR = os.path.dirname(__file__)
 PARAMETERS = params()
-
-with open(".secrets.json", "r") as f:
-    SECRETS = json.loads(f.read())
 
 
 def main() -> None:
@@ -25,21 +20,12 @@ def main() -> None:
             f"Expected 'unlock' to be of type `str` but received {type(passcode)}"
         )
 
-    db = mysql.connector.connect(
-        host="localhost",
-        user="atp45",
-        password=SECRETS["DB_PASS"],
-        database="atp45/newsletter"
-    )
-    cursor = db.cursor()
-    sql = "SELECT * FROM newsletters;"
-    cursor.execute(sql)
-    result = cursor.fetchall()
+    newsletters = get_newsletters()
 
     verified = False
     title = ""
     newsletter_id = -1
-    for entry in result:
+    for entry in newsletters:
         n_id, n_title, n_hash = entry
         assert isinstance(n_hash, bytes), "SQL returned a hash that was not in bytes."
 
