@@ -1,14 +1,19 @@
 #!/usr/bin/python3
 
 import os
+import json
+
+import mysql.connector
 
 from utils import verify, format_html
 from http_lib import HttpResponse, params, wrap
 
 
 DIR = os.path.dirname(__file__)
-
 PARAMETERS = params()
+
+with open(".secrets.json", "r") as f:
+    SECRETS = json.loads(f.read())
 
 
 def main() -> None:
@@ -20,18 +25,40 @@ def main() -> None:
             f"Expected 'unlock' to be of type `str` but received {type(passcode)}"
         )
 
-    verified = verify(
-        passcode,
-        os.path.join(DIR, "newsletter.pass")
+    db = mysql.connector.connect(
+        host="localhost",
+        user="atp45",
+        password=SECRETS["DB_PASS"],
+        database="atp45/newsletter"
     )
+    cursor = db.cursor()
+    sql = "SELECT * FROM newsletters;"
+    cursor.execute(sql)
+    result = cursor.fetchall()
+
+    verified = False
+    title = ""
+    newsletter_id = -1
+    for entry in result:
+        n_id, n_title, n_hash = entry
+        assert isinstance(n_hash, bytes), "SQL returned a hash that was not in bytes."
+
+        verified = verify(
+            passcode,
+            n_hash
+        )
+        if verified:
+            title = n_title
+            newsletter_id = n_id
+            break
 
     if verified:
         with open(os.path.join(DIR, "templates/newsletter/answer.html")) as f:
             html = f.read()
             values = {
-                "PASSCODE": PARAMETERS["unlock"],
+                "PASSCODE": passcode,
                 "QUESTIONS": "",
-                "TITLE": "The Glorious Test"
+                "TITLE": title
             }
 
             print("Content-Type: text/html")
