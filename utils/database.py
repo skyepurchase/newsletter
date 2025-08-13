@@ -53,6 +53,44 @@ def get_newsletters() -> list:
     return result
 
 
+def get_questions(
+    newsletter_id: int,
+    issue: int
+) -> list:
+    """
+    Get the questions for the specified newsletter and issue
+
+    Parameters
+    ----------
+    newsletter_id : int
+        The newsletter foreign key
+    issue : int
+        The issue number
+
+    Returns
+    -------
+    results : list
+        The list of questions created for that newsletter and issue.
+    """
+    conn, cursor = _get_connection()
+
+    query = """
+    SELECT id, creator, text
+    FROM questions
+    WHERE newsletter_id=%s AND issue=%s;
+    """
+    values = (newsletter_id, issue)
+    result = []
+    try:
+        cursor.execute(query, values)
+        result = cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
+    return result
+
+
 def create_newsletter(title: str, pass_hash: bytes) -> bool:
     """
     Create a new newsletter entry

@@ -1,7 +1,7 @@
 import os
 
 from .utils.html import verify, format_html
-from .utils.database import get_newsletters
+from .utils.database import get_newsletters, get_questions
 
 
 DIR = os.path.dirname(__file__)
@@ -38,11 +38,31 @@ def render(
             break
 
     if verified:
+        # TODO: choose what content to show somehow
+        with open(os.path.join(DIR, "templates/question_box.html")) as f:
+            question_template = f.read()
+
+        # TODO: dynamically choose the issue number as well
+        questions = get_questions(newsletter_id, 11)
+        question_html = ""
+        for question in questions:
+            q_id, q_creator, q_text = question
+            values = {
+                # People could be silly with this
+                "ID": f"question_{q_id}",
+                "NAME": q_creator,
+                "QUESTION": q_text
+            }
+            question_html += format_html(
+                question_template[:], # Copy string
+                values
+            )
+
         with open(os.path.join(DIR, "templates/answer.html")) as f:
             html = f.read()
             values = {
                 "PASSCODE": passcode,
-                "QUESTIONS": "",
+                "QUESTIONS": question_html,
                 "TITLE": title
             }
 
