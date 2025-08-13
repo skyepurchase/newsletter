@@ -63,7 +63,8 @@ def render(
             values = {
                 "PASSCODE": passcode,
                 "QUESTIONS": question_html,
-                "TITLE": title
+                # TODO: another hardcoded issue number
+                "TITLE": f"{title} 11"
             }
 
             print("Content-Type: text/html")
