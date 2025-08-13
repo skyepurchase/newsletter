@@ -1,18 +1,17 @@
-#!/usr/bin/python3
-
 import os
 
-from utils import verify, format_html
-from http_lib import HttpResponse, params, wrap
-from database import get_newsletters
+from .utils import verify, format_html
+from .database import get_newsletters
 
 
 DIR = os.path.dirname(__file__)
-PARAMETERS = params()
 
 
-def main() -> None:
-    passcode = PARAMETERS["unlock"]
+def render(
+    parameters: dict,
+    HttpResponse # TODO: type hint this properly
+) -> None:
+    passcode = parameters["unlock"]
     if not isinstance(passcode, str):
         # Should only happen if people tamper with URL >:(
         raise HttpResponse(
@@ -39,7 +38,7 @@ def main() -> None:
             break
 
     if verified:
-        with open(os.path.join(DIR, "templates/newsletter/answer.html")) as f:
+        with open(os.path.join(DIR, "templates/answer.html")) as f:
             html = f.read()
             values = {
                 "PASSCODE": passcode,
@@ -53,5 +52,3 @@ def main() -> None:
             print(format_html(html, values))
     else:
         raise HttpResponse(401, "Nice try, but that is not the passcode! If you are meant to find something try typing it in again.")
-
-wrap(main)

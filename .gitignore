@@ -9,6 +9,3 @@ spot_of_news/
 
 # Python
 __pycache__/
-
-# passcodes
-server/newsletter.pass
