@@ -1,12 +1,12 @@
 import os, yaml, subprocess, tempfile, copy, sys, logging
 from datetime import datetime
 
-from email_utils import (
+from utils.email import (
     generate_newsletter,
     generate_email_request,
     send_email
 )
-from form_utils import (
+from utils.form import (
     get_questions,
     update_form
 )

@@ -1,7 +1,7 @@
 import os
 
-from .html_utils import verify, format_html
-from .database import get_newsletters
+from .utils.html import verify, format_html
+from .utils.database import get_newsletters
 
 
 DIR = os.path.dirname(__file__)
