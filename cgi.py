@@ -1,6 +1,6 @@
 import os
 
-from .utils import verify, format_html
+from .html_utils import verify, format_html
 from .database import get_newsletters
 
 
