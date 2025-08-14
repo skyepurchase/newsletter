@@ -7,6 +7,8 @@ from email.mime.image import MIMEImage
 from form_utils import download_image, get_form_data
 from type_hints import NewsletterConfig
 
+from typing import Tuple
+
 
 PORT = 465
 
@@ -17,7 +19,7 @@ def convert_image(filepath: str) -> bytes:
         return encoded_string
 
 
-def generate_newsletter(config: NewsletterConfig) -> tuple[str, dict]:
+def generate_newsletter(config: NewsletterConfig) -> Tuple[str, dict]:
     ordered_responses, id_to_title, image_paths, photo_id, captions = get_form_data(
         config.answer.id,
         config.answer.cutoff,

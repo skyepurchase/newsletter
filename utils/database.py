@@ -113,6 +113,48 @@ def get_questions(
     return default, submitted
 
 
+def insert_answer(
+    name: str,
+    responses: dict
+) -> Tuple[bool, Optional[str]]:
+    """
+    Insert the answers for a specific user.
+
+    Parameters
+    ----------
+    name : str
+        The name of the user
+    responses : dict[question_id, (img, answer)]
+        A dictionary of responses
+    """
+    conn, cursor = _get_connection()
+
+    success = True
+    error_text: Optional[str] = None
+    try:
+        for q_id, (img, answer) in responses.items():
+            query = """
+            INSERT INTO answers (question_id, name, text)
+            VALUES (%s, %s, %s);"""
+            # TODO: add images!!
+            values = (q_id, name, answer)
+
+            cursor.execute(query, values)
+
+        conn.commit()
+    except Error as error:
+        open(LOG_FILE, "a").write(f"[WARN: {now.isoformat()}] Failed to submit answers, rollback: {error}\n")
+        conn.rollback()
+        success = False
+        error_text = error.msg
+    finally:
+        cursor.close()
+        conn.close()
+        open(LOG_FILE, "a").write(f"[INFO: {now.isoformat()}] Connection closed\n")
+
+    return success, error_text
+
+
 def create_newsletter(title: str, pass_hash: bytes) -> bool:
     """
     Create a new newsletter entry

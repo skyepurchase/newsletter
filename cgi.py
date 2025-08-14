@@ -1,7 +1,7 @@
 import os
 
 from .utils.html import verify, format_html
-from .utils.database import get_newsletters, get_questions
+from .utils.database import get_newsletters, get_questions, insert_answer
 
 
 DIR = os.path.dirname(__file__)
@@ -146,3 +146,58 @@ def render(
             print(format_html(html, values))
     else:
         raise HttpResponse(401, "Nice try, but that is not the passcode! If you are meant to find something try typing it in again.")
+
+
+def answer(
+    parameters: dict,
+    HttpResponse
+):
+    """
+    Add a users answers to the database if they are authorised.
+
+    Parameters
+    ----------
+    parameters : dict
+        The dict of processed POST parameters
+    HttpResponse : Error
+The suitable error to throw HTTP Responses
+    """
+    passcode = parameters["unlock"]
+    if not isinstance(passcode, str):
+        # Should only happen if people tamper with URL >:(
+        raise HttpResponse(
+            400,
+            f"Expected 'unlock' to be of type `str` but received {type(passcode)}"
+        )
+
+    verified, _, _ = authenticate(passcode)
+    if verified:
+        responses = {}
+        name = ""
+
+        for key, response in parameters.items():
+            if key=="unlock": continue
+            if key=="name": name=response; continue
+
+            parts = key.split("_")
+            if len(parts) != 2:
+                raise HttpResponse(400, "Form keys are not in expected format. Do not mess with the post request!")
+
+            q_type = parts[0]
+            q_id = parts[1]
+
+            if q_type=="question":
+                responses[q_id] = (None, response)
+            elif q_type=="image":
+                # Implement images
+                pass
+            else:
+                raise HttpResponse(400, "Form keys are not in expected format. Do not mess with the post request!")
+
+        created, error = insert_answer(name, responses)
+        if created:
+            raise HttpResponse(201, "Thank you for submitting you answers :).")
+        else:
+            raise HttpResponse(500, error)
+    else:
+        raise HttpResponse(401, "How did you manage that? Don't tapper with things please.")
