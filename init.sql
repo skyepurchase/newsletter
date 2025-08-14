@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS newsletters (
 CREATE TABLE IF NOT EXISTS questions (
     id INT AUTO_INCREMENT NOT NULL PRIMARY KEY,
     newsletter_id INT NOT NULL,
+    base TINYINT(1) NOT NULL DEFAULT 0,
+    type ENUM('text', 'image') NOT NULL DEFAULT 'text',
     creator VARCHAR(100) NOT NULL,
     text TEXT NOT NULL,
     issue INT NOT NULL,
@@ -18,5 +20,6 @@ CREATE TABLE IF NOT EXISTS answers (
     question_id INT NOT NULL,
     img_path VARCHAR(100),
     name VARCHAR(100) NOT NULL,
+    text TEXT NOT NULL,
     FOREIGN KEY (question_id) REFERENCES questions(id)
 );

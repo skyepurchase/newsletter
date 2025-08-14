@@ -1,9 +1,14 @@
 import json
+from datetime import datetime
 
 import mysql.connector
-from mysql.connector.errors import IntegrityError
+from mysql.connector.errors import Error, IntegrityError
+
+from typing import Optional, Tuple
 
 
+now = datetime.now()
+LOG_FILE = "/home/atp45/logs/mysql"
 with open(".secrets.json", "r") as f:
     SECRETS = json.loads(f.read())
 
@@ -25,7 +30,9 @@ def _get_connection():
         password=SECRETS["DB_PASS"],
         database="atp45/newsletter"
     )
+    conn.autocommit = False
     cursor = conn.cursor()
+    open(LOG_FILE, "a").write(f"[INFO: {now.isoformat()}] Connection opened\n")
 
     return conn, cursor
 
@@ -49,6 +56,7 @@ def get_newsletters() -> list:
     finally:
         cursor.close()
         conn.close()
+        open(LOG_FILE, "a").write(f"[INFO: {now.isoformat()}] Connection closed\n")
 
     return result
 
@@ -56,9 +64,10 @@ def get_newsletters() -> list:
 def get_questions(
     newsletter_id: int,
     issue: int
-) -> list:
+) -> Tuple[list, list]:
     """
-    Get the questions for the specified newsletter and issue
+    Get the questions for the specified newsletter and issue.
+    This returns both the default and the user submitted questions.
 
     Parameters
     ----------
@@ -69,26 +78,39 @@ def get_questions(
 
     Returns
     -------
-    results : list
+    default : list[q_id, text, type]
+        The list of default questions and their type for that newsletter and issue.
+    submitted : list[q_id, creator, text]
         The list of questions created for that newsletter and issue.
     """
     conn, cursor = _get_connection()
 
-    query = """
+    default_query = """
+    SELECT id, text, type
+    FROM questions
+    WHERE newsletter_id=%s AND issue=%s AND base;
+    """
+    user_query = """
     SELECT id, creator, text
     FROM questions
-    WHERE newsletter_id=%s AND issue=%s;
+    WHERE newsletter_id=%s AND issue=%s AND NOT base;
     """
     values = (newsletter_id, issue)
-    result = []
+
+    default = []
+    submitted = []
     try:
-        cursor.execute(query, values)
-        result = cursor.fetchall()
+        cursor.execute(user_query, values)
+        submitted = cursor.fetchall()
+
+        cursor.execute(default_query, values)
+        default = cursor.fetchall()
     finally:
         cursor.close()
         conn.close()
+        open(LOG_FILE, "a").write(f"[INFO: {now.isoformat()}] Connection closed\n")
 
-    return result
+    return default, submitted
 
 
 def create_newsletter(title: str, pass_hash: bytes) -> bool:
@@ -116,9 +138,11 @@ def create_newsletter(title: str, pass_hash: bytes) -> bool:
         cursor.execute(query, values)
         conn.commit()
     except IntegrityError:
+        open(LOG_FILE, "a").write(f"[WARN: {now.isoformat()}] Failed to create newsletter due to integrity error\n")
         success = False
     finally:
         cursor.close()
         conn.close()
+        open(LOG_FILE, "a").write(f"[INFO: {now.isoformat()}] Connection closed\n")
 
     return success

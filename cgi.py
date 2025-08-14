@@ -5,20 +5,31 @@ from .utils.database import get_newsletters, get_questions
 
 
 DIR = os.path.dirname(__file__)
+# TODO: don't hardcode this
+from typing import Tuple
+ISSUE_NUMBER = 11
 
 
-def render(
-    parameters: dict,
-    HttpResponse # TODO: type hint this properly
-) -> None:
-    passcode = parameters["unlock"]
-    if not isinstance(passcode, str):
-        # Should only happen if people tamper with URL >:(
-        raise HttpResponse(
-            400,
-            f"Expected 'unlock' to be of type `str` but received {type(passcode)}"
-        )
+def authenticate(
+    passcode: str
+) -> Tuple[bool, int, str]:
+    """
+    Check whether a user is verified and then return the relevant newsletter details.
 
+    Parameters
+    ----------
+    passcode : str
+        The passcode to test
+
+    Returns
+    -------
+    verified : bool
+        Whether the user is verified
+    newsletter_id : int
+        The id of the authenticated newsletter
+    title : str
+        The title of the authenticated newsletter
+    """
     newsletters = get_newsletters()
 
     verified = False
@@ -37,15 +48,57 @@ def render(
             newsletter_id = n_id
             break
 
+    return verified, newsletter_id, title
+
+
+def render(
+    parameters: dict,
+    HttpResponse # TODO: type hint this properly
+) -> None:
+    """
+    Render the relevant form or page based on 'factors'.
+
+    Parameters
+    ----------
+    parameters : dict
+        The dict of processed POST parameters
+    HttpResponse : Error
+        The suitable error to throw HTTP Responses
+    """
+    passcode = parameters["unlock"]
+    if not isinstance(passcode, str):
+        # Should only happen if people tamper with URL >:(
+        raise HttpResponse(
+            400,
+            f"Expected 'unlock' to be of type `str` but received {type(passcode)}"
+        )
+
+    verified, n_id, title = authenticate(passcode)
     if verified:
         # TODO: choose what content to show somehow
-        with open(os.path.join(DIR, "templates/question_box.html")) as f:
-            question_template = f.read()
+        user_question = open(
+            os.path.join(
+                DIR,
+                "templates/user_question.html"
+            )
+        ).read()
+        text_question = open(
+            os.path.join(
+                DIR,
+                "templates/text_question.html"
+            )
+        ).read()
+        img_question = open(
+            os.path.join(
+                DIR,
+                "templates/image_question.html"
+            )
+        ).read()
 
-        # TODO: dynamically choose the issue number as well
-        questions = get_questions(newsletter_id, 11)
+        base_questions, user_questions = get_questions(n_id, ISSUE_NUMBER)
+
         question_html = ""
-        for question in questions:
+        for question in user_questions:
             q_id, q_creator, q_text = question
             values = {
                 # People could be silly with this
@@ -54,17 +107,37 @@ def render(
                 "QUESTION": q_text
             }
             question_html += format_html(
-                question_template[:], # Copy string
+                user_question[:], # Copy string
                 values
             )
+
+        for question in base_questions:
+            q_id, q_text, q_type = question
+            values = {
+                "ID": f"question_{q_id}",
+                "QUESTION": q_text
+            }
+
+            if q_type=="text":
+                question_html += format_html(
+                    text_question[:], # Copy string
+                    values
+                )
+            elif q_type=="image":
+                values["IMG_ID"] = f"image_{q_id}"
+                question_html += format_html(
+                    img_question[:], # Copy string
+                    values
+                )
+            else:
+                raise HttpResponse(500, f"question type {q_type} unknown.")
 
         with open(os.path.join(DIR, "templates/answer.html")) as f:
             html = f.read()
             values = {
                 "PASSCODE": passcode,
                 "QUESTIONS": question_html,
-                # TODO: another hardcoded issue number
-                "TITLE": f"{title} 11"
+                "TITLE": f"{title} {ISSUE_NUMBER}"
             }
 
             print("Content-Type: text/html")
