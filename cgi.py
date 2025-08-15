@@ -193,13 +193,14 @@ The suitable error to throw HTTP Responses
             q_id = parts[1]
 
             if q_type=="question":
-                responses[q_id]["text"] = response
+                # Don't insert blank answers
+                if len(response) > 0:
+                    responses[q_id]["text"] = response
             elif q_type=="image":
                 open(LOG_FILE, "a").write(
                     f"[DEBUG: {NOW.isoformat}] Processing image upload."
                 )
                 responses[q_id]["img"] = response['path']
-
             else:
                 raise HttpResponse(400, "Form keys are not in expected format. Do not mess with the post request!")
 
