@@ -132,12 +132,11 @@ def insert_answer(
     success = True
     error_text: Optional[str] = None
     try:
-        for q_id, (img, answer) in responses.items():
+        for q_id, data in responses.items():
             query = """
-            INSERT INTO answers (question_id, name, text)
-            VALUES (%s, %s, %s);"""
-            # TODO: add images!!
-            values = (q_id, name, answer)
+            INSERT INTO answers (question_id, name, img_path, text)
+            VALUES (%s, %s, %s, %s);"""
+            values = (q_id, name, data['img'], data['text'])
 
             cursor.execute(query, values)
 

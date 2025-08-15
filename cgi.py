@@ -1,13 +1,17 @@
 import os
+from datetime import datetime
 
 from .utils.html import verify, format_html
 from .utils.database import get_newsletters, get_questions, insert_answer
 
+from typing import DefaultDict, Tuple
 
 DIR = os.path.dirname(__file__)
+LOG_FILE = "/home/atp45/newsletter"
+NOW = datetime.now()
 # TODO: don't hardcode this
-from typing import Tuple
 ISSUE_NUMBER = 11
+
 
 
 def authenticate(
@@ -172,7 +176,9 @@ The suitable error to throw HTTP Responses
 
     verified, _, _ = authenticate(passcode)
     if verified:
-        responses = {}
+        responses = DefaultDict(
+            lambda: {"img": None, "text": None}
+        )
         name = ""
 
         for key, response in parameters.items():
@@ -187,10 +193,13 @@ The suitable error to throw HTTP Responses
             q_id = parts[1]
 
             if q_type=="question":
-                responses[q_id] = (None, response)
+                responses[q_id]["text"] = response
             elif q_type=="image":
-                # Implement images
-                pass
+                open(LOG_FILE, "a").write(
+                    f"[DEBUG: {NOW.isoformat}] Processing image upload."
+                )
+                responses[q_id]["img"] = response['path']
+
             else:
                 raise HttpResponse(400, "Form keys are not in expected format. Do not mess with the post request!")
 
