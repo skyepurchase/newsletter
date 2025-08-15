@@ -21,5 +21,7 @@ CREATE TABLE IF NOT EXISTS answers (
     img_path VARCHAR(100),
     name VARCHAR(100) NOT NULL,
     text TEXT NOT NULL,
-    FOREIGN KEY (question_id) REFERENCES questions(id)
+    FOREIGN KEY (question_id) REFERENCES questions(id),
+    -- Remove duplicates for a person responding twice
+    UNIQUE INDEX(question_id, name)
 );

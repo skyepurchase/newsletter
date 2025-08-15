@@ -1,4 +1,5 @@
 import json
+import traceback
 from datetime import datetime
 
 import mysql.connector
@@ -133,16 +134,23 @@ def insert_answer(
     error_text: Optional[str] = None
     try:
         for q_id, data in responses.items():
+            # Override old responses with new ones
             query = """
             INSERT INTO answers (question_id, name, img_path, text)
-            VALUES (%s, %s, %s, %s);"""
-            values = (q_id, name, data['img'], data['text'])
+            VALUES (%s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE img_path=%s, text=%s;
+            """
+            values = (
+                q_id, name,
+                data['img'], data['text'],
+                data['img'], data['text']
+            )
 
             cursor.execute(query, values)
 
         conn.commit()
     except Error as error:
-        open(LOG_FILE, "a").write(f"[WARN: {now.isoformat()}] Failed to submit answers, rollback: {error}\n")
+        open(LOG_FILE, "a").write(f"[WARN: {now.isoformat()}] Failed to submit answers, rollback: {traceback.format_exc()}\n")
         conn.rollback()
         success = False
         error_text = error.msg
