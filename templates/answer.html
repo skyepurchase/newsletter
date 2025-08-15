@@ -29,7 +29,12 @@
         <!--form {{{ -->
         <div class="container">
             <div class="content">
-                <form class="newsletter" action="./newsletter_submit_answer.py" method="post">
+                <form
+                    class="newsletter"
+                    action="./newsletter_submit_answer.py"
+                    method="post"
+                    enctype="multipart/form-data"
+                >
                     <div class="title"><h1>[TITLE]</h1></div>
 
                     <label for="name">🏷️ Name</label><br>
