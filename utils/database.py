@@ -134,16 +134,18 @@ def insert_answer(
     error_text: Optional[str] = None
     try:
         for q_id, data in responses.items():
-            # Override old responses with new ones
+            # Skip duplicate entries
+            # This is unsafe but avoids unauthorised data overwrite
+            # It does not prevent malicious lock-out
             query = """
-            INSERT INTO answers (question_id, name, img_path, text)
-            VALUES (%s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE img_path=%s, text=%s;
+            INSERT IGNORE INTO answers (question_id, name, img_path, text)
+            VALUES (%s, %s, %s, %s);
             """
+            # ON DUPLICATE KEY UPDATE img_path=%s, text=%s;
             values = (
                 q_id, name,
                 data['img'], data['text'],
-                data['img'], data['text']
+                # data['img'], data['text']
             )
 
             cursor.execute(query, values)
