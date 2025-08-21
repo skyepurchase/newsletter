@@ -46,9 +46,11 @@ a:hover {
     background-color: #282a36;
 }
 
-input:focus, textarea:focus {
+input:focus,
+textarea:focus {
     outline: none;
 }
+
 /*}}}*/
 
 /* navigation {{{*/
@@ -168,7 +170,9 @@ nav .menu-btn {
 /*}}}*/
 
 /* newsletter {{{ */
-.newsletter input, textarea {
+/* form {{{ */
+.newsletter input,
+textarea {
     border: 2px solid #44475a;
     background-color: #282a36;
     border-top: none;
@@ -240,7 +244,7 @@ nav .menu-btn {
 .newsletter .file-upload div:hover {
     background-color: #bd93f9;
     color: #44475a;
-    box-shadow: 2px 2px 20px rgba(189,147,249,0.5);
+    box-shadow: 2px 2px 20px rgba(189, 147, 249, 0.5);
 }
 
 .newsletter .file-upload p {
@@ -258,6 +262,76 @@ nav .menu-btn {
     color: #8be9fd;
     font-size: 20px;
 }
+
+/* }}} */
+
+/* display {{{ */
+.newsletter .question_box {
+    background-color: #44475a;
+    border-radius: 10px;
+    font-weight: bolder;
+    padding: 10px 30px;
+    margin: 30px 0;
+}
+
+.newsletter .question_box font {
+    margin: auto 0;
+    margin-top: 16px;
+    margin-left: 20px;
+}
+
+.newsletter .question_box p {
+    margin-left: 10px;
+}
+
+.newsletter .question {
+    display: flex;
+    flex-direction: row;
+    font-size: 16pt;
+}
+
+.newsletter .question font {
+    margin-top: 21px;
+    font-size: 16pt;
+}
+
+.newsletter .response {
+    border-radius: 10px;
+    display: flex;
+    flex-direction: row;
+    margin: 10px 0;
+    padding: 5px 20px;
+    box-shadow: 2px 2px 20px rgba(16, 16, 21, 0.8);
+}
+
+.newsletter .response font {
+    margin-left: 0;
+}
+
+.newsletter .image_response {
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    margin: 10px 0;
+    padding: 5px 20px;
+    box-shadow: 2px 2px 20px rgba(16, 16, 21, 0.8);
+}
+
+.newsletter .image_response font {
+    margin: 10px 0;
+}
+
+.newsletter img {
+    padding: 10px;
+    border-radius: 15px;
+}
+
+.newsletter figcaption {
+    padding: 10px;
+    align-self: center;
+}
+
+/* }}} */
 /* }}} */
 
 /* passcode {{{ */
@@ -291,4 +365,5 @@ nav .menu-btn {
     line-height: 15px;
     width: 100%;
 }
+
 /* }}} */

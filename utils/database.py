@@ -164,6 +164,43 @@ def insert_answer(
     return success, error_text
 
 
+def get_responses(
+    newsletter_id: int,
+    issue: int
+) -> list:
+    conn, cursor = _get_connection()
+
+    results = []
+    try:
+        q_id_query = """
+        SELECT id, creator, text FROM questions
+        WHERE newsletter_id=%s AND issue=%s
+        """
+        cursor.execute(q_id_query, (newsletter_id, issue))
+        questions = cursor.fetchall()
+
+        for question in questions:
+            q_id, creator, question = question
+
+            query = """
+            SELECT name, text, img_path
+            FROM answers
+            WHERE answers.question_id=%s
+            """
+            cursor.execute(query, (q_id,))
+            responses = cursor.fetchall()
+
+            results.append((creator, question, responses))
+    except TypeError:
+        open(LOG_FILE, "a").write(f"[ERROR: {now.isoformat()}] Failed to retrieve responses due to type error: {traceback.format_exc()}\n")
+    finally:
+        cursor.close()
+        conn.close()
+        open(LOG_FILE, "a").write(f"[INFO: {now.isoformat()}] Connection closed\n")
+
+    return results
+
+
 def create_newsletter(title: str, pass_hash: bytes) -> bool:
     """
     Create a new newsletter entry
