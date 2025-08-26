@@ -1,17 +1,25 @@
-import json
-import traceback
-from datetime import datetime
+import json, traceback, logging
 
 import mysql.connector
 from mysql.connector.errors import Error, IntegrityError
 
 from typing import Optional, Tuple
 
+from .constants import LOG_TIME_FORMAT
 
-now = datetime.now()
-LOG_FILE = "/home/atp45/logs/mysql"
+
 with open(".secrets.json", "r") as f:
     SECRETS = json.loads(f.read())
+
+
+formatter = logging.Formatter(
+    '[%(asctime)s %(levelname)s] %(message)s',
+    datefmt=LOG_TIME_FORMAT
+)
+logger = logging.getLogger(__name__)
+handler = logging.FileHandler("/home/atp45/logs/mysql")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 
 def _get_connection():
@@ -33,7 +41,7 @@ def _get_connection():
     )
     conn.autocommit = False
     cursor = conn.cursor()
-    open(LOG_FILE, "a").write(f"[INFO: {now.isoformat()}] Connection opened\n")
+    logger.info("Connection opened")
 
     return conn, cursor
 
@@ -57,7 +65,7 @@ def get_newsletters() -> list:
     finally:
         cursor.close()
         conn.close()
-        open(LOG_FILE, "a").write(f"[INFO: {now.isoformat()}] Connection closed\n")
+        logger.info("Connection closed")
 
     return result
 
@@ -109,7 +117,7 @@ def get_questions(
     finally:
         cursor.close()
         conn.close()
-        open(LOG_FILE, "a").write(f"[INFO: {now.isoformat()}] Connection closed\n")
+        logger.info("Connection closed")
 
     return default, submitted
 
@@ -152,14 +160,15 @@ def insert_answer(
 
         conn.commit()
     except Error as error:
-        open(LOG_FILE, "a").write(f"[WARN: {now.isoformat()}] Failed to submit answers, rollback: {traceback.format_exc()}\n")
+        logger.error("Failed to submit answers, rollback: %s", traceback.format_exc())
+
         conn.rollback()
         success = False
         error_text = error.msg
     finally:
         cursor.close()
         conn.close()
-        open(LOG_FILE, "a").write(f"[INFO: {now.isoformat()}] Connection closed\n")
+        logger.info("Connection closed")
 
     return success, error_text
 
@@ -192,11 +201,11 @@ def get_responses(
 
             results.append((creator, question, responses))
     except TypeError:
-        open(LOG_FILE, "a").write(f"[ERROR: {now.isoformat()}] Failed to retrieve responses due to type error: {traceback.format_exc()}\n")
+        logger.error("Failed to retrieve responses due to type error: %s", traceback.format_exc())
     finally:
         cursor.close()
         conn.close()
-        open(LOG_FILE, "a").write(f"[INFO: {now.isoformat()}] Connection closed\n")
+        logger.info("Connection closed")
 
     return results
 
@@ -226,11 +235,11 @@ def create_newsletter(title: str, pass_hash: bytes) -> bool:
         cursor.execute(query, values)
         conn.commit()
     except IntegrityError:
-        open(LOG_FILE, "a").write(f"[WARN: {now.isoformat()}] Failed to create newsletter due to integrity error\n")
+        logger.error("Failed to create newsletter due to integrity error.")
         success = False
     finally:
         cursor.close()
         conn.close()
-        open(LOG_FILE, "a").write(f"[INFO: {now.isoformat()}] Connection closed\n")
+        logger.info("Connection closed")
 
     return success

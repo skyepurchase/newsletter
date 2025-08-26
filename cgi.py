@@ -1,6 +1,7 @@
-import os, shutil
+import os, shutil, logging
 from datetime import datetime
 
+from .utils.constants import LOG_TIME_FORMAT
 from .utils.html import verify, format_html
 from .utils.database import (
     get_newsletters,
@@ -12,11 +13,20 @@ from .utils.database import (
 from typing import DefaultDict, Tuple
 
 DIR = os.path.dirname(__file__)
-LOG_FILE = "/home/atp45/logs/newsletter"
 NOW = datetime.now()
 # TODO: don't hardcode this
 ISSUE_NUMBER = 11
-SWITCH = datetime.strptime("20250824", "%Y%m%d")
+SWITCH = datetime.strptime("20250831", "%Y%m%d")
+
+
+formatter = logging.Formatter(
+    '[%(asctime)s %(levelname)s] %(message)s',
+    datefmt=LOG_TIME_FORMAT
+)
+logger = logging.getLogger(__name__)
+handler = logging.FileHandler("/home/atp45/logs/newsletter")
+handler.setFormatter(formatter)
+logger.addHandler(handler)
 
 
 def authenticate(
@@ -310,9 +320,7 @@ The suitable error to throw HTTP Responses
                 if len(response) > 0:
                     responses[q_id]["text"] = response
             elif q_type=="image":
-                open(LOG_FILE, "a").write(
-                    f"[DEBUG: {NOW.isoformat()}] Processing image upload\n"
-                )
+                logger.info("Processing images upload")
                 responses[q_id]["img"] = response['path']
             else:
                 raise HttpResponse(400, "Form keys are not in expected format. Do not mess with the post request!")

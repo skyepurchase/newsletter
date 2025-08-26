@@ -1,33 +1,32 @@
 import os, yaml, subprocess, tempfile, copy, sys, logging
 from datetime import datetime
 
-from utils.email import (
+from .utils.constants import LOG_TIME_FORMAT, CONFIG_TIME_FORMAT
+from .utils.email import (
     generate_newsletter,
     generate_email_request,
     send_email
 )
-from utils.type_hints import (
+from .utils.type_hints import (
     FormConfig,
     NewsletterConfig
 )
 
 
 EDITOR = os.environ.get('EDITOR', 'vim')
-CONFIG_TIME_FORMAT = "%Y%m%d"
-LOG_TIME_FORMAT = "%Y-%m-%d %H:%M:%S"
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("mailer")
 
 
 def main(config: NewsletterConfig) -> NewsletterConfig:
-    debug = " DEBUG" if config.debug else ""
-    logging.basicConfig(
-        format=f'%(asctime)s %(levelname)s{debug}: %(message)s',
-        filename=os.path.join(config.folder, "out.log"),
-        level=logging.INFO,
+    formatter = logging.Formatter(
+        f'[%(asctime)s %(levelname)s] {config.name}: %(message)s',
         datefmt=LOG_TIME_FORMAT
     )
+    handler = logging.FileHandler("/home/atp45/logs/mailer")
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
 
     if config.isQuestion:
         config.text = "Time to submit your questions!"
@@ -84,7 +83,7 @@ def main(config: NewsletterConfig) -> NewsletterConfig:
             datetime.now(), CONFIG_TIME_FORMAT
         )
     elif config.isSend:
-        logger.info(f"Publishing")
+        logger.info("Publishing")
         email, images = generate_newsletter(config)
         config.issue += 1
     else:

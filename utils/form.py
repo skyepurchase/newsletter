@@ -20,7 +20,8 @@ SCOPES = [
 ]
 
 
-logger = logging.getLogger(__name__)
+# Get the same logger as the mailer
+logger = logging.getLogger("mailer")
 
 
 def create_service(*args, isManual):
