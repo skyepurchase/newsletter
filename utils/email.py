@@ -4,8 +4,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
 
-from form_utils import download_image, get_form_data
-from type_hints import NewsletterConfig
+from .form import download_image, get_form_data
+from .type_hints import NewsletterConfig
 
 from typing import Tuple
 

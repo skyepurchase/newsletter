@@ -11,7 +11,7 @@ LOG_FILE = "/home/atp45/newsletter"
 NOW = datetime.now()
 # TODO: don't hardcode this
 ISSUE_NUMBER = 11
-
+SWITCH = datetime.strptime("20250824", "%Y%m%d")
 
 
 def authenticate(

@@ -6,11 +6,10 @@ from utils.email import (
     generate_email_request,
     send_email
 )
-from utils.form import (
-    get_questions,
-    update_form
+from utils.type_hints import (
+    FormConfig,
+    NewsletterConfig
 )
-from type_hints import FormConfig, NewsletterConfig
 
 
 EDITOR = os.environ.get('EDITOR', 'vim')
@@ -65,16 +64,16 @@ def main(config: NewsletterConfig) -> NewsletterConfig:
         )
     elif config.isAnswer:
         logger.info(f"Answer request")
-        questions = get_questions(
-            config.question.id,
-            config.question.cutoff,
-            config.isManual
-        )
-        update_form(
-            config.answer.id,
-            questions,
-            config.isManual
-        )
+        # questions = get_questions(
+        #     config.question.id,
+        #     config.question.cutoff,
+        #     config.isManual
+        # )
+        # update_form(
+        #     config.answer.id,
+        #     questions,
+        #     config.isManual
+        # )
         email = generate_email_request(
             config, "answer",
             config.answer.link
