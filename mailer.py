@@ -1,16 +1,8 @@
 import os, yaml, subprocess, tempfile, copy, sys, logging
-from datetime import datetime
 
-from .utils.constants import LOG_TIME_FORMAT, CONFIG_TIME_FORMAT
-from .utils.email import (
-    generate_newsletter,
-    generate_email_request,
-    send_email
-)
-from .utils.type_hints import (
-    FormConfig,
-    NewsletterConfig
-)
+from utils.constants import LOG_TIME_FORMAT
+from utils.email import generate_email_request, send_email
+from utils.type_hints import NewsletterConfig
 
 
 EDITOR = os.environ.get('EDITOR', 'vim')
@@ -24,7 +16,7 @@ def main(config: NewsletterConfig) -> NewsletterConfig:
         f'[%(asctime)s %(levelname)s] {config.name}: %(message)s',
         datefmt=LOG_TIME_FORMAT
     )
-    handler = logging.FileHandler("/home/atp45/logs/mailer")
+    handler = logging.FileHandler(f"{config.folder}/log")
     handler.setFormatter(formatter)
     logger.addHandler(handler)
 
@@ -52,45 +44,19 @@ def main(config: NewsletterConfig) -> NewsletterConfig:
 
     if config.isQuestion:
         logger.info(f"Question request")
-        email = generate_email_request(
-            config, "question",
-            config.question.link
-        )
-        images = {}
-
-        config.question.cutoff = datetime.strftime(
-            datetime.now(), CONFIG_TIME_FORMAT
-        )
+        email = generate_email_request(config)
     elif config.isAnswer:
         logger.info(f"Answer request")
-        # questions = get_questions(
-        #     config.question.id,
-        #     config.question.cutoff,
-        #     config.isManual
-        # )
-        # update_form(
-        #     config.answer.id,
-        #     questions,
-        #     config.isManual
-        # )
-        email = generate_email_request(
-            config, "answer",
-            config.answer.link
-        )
-        images = {}
-
-        config.answer.cutoff = datetime.strftime(
-            datetime.now(), CONFIG_TIME_FORMAT
-        )
+        email = generate_email_request(config)
     elif config.isSend:
         logger.info("Publishing")
-        email, images = generate_newsletter(config)
+        email = generate_email_request(config)
         config.issue += 1
     else:
         logger.warning(f"Illegal config file submitted!")
         sys.exit(2)
 
-    send_email(email, images, config)
+    send_email(email, config)
     return config
 
 
@@ -112,12 +78,8 @@ if __name__=='__main__':
             config = yaml.safe_load(config_file)
             old_config = copy.deepcopy(config)
         except yaml.YAMLError as e:
-            logger.warning("An error occurred opening the YAML configuration.")
-            logger.warning(e)
+            logger.debug("An error occurred opening the YAML configuration\n", e)
             sys.exit(1)
-
-    question_config = FormConfig(**config["question"])
-    answer_config = FormConfig(**config["answer"])
 
     new_config = main(NewsletterConfig(
         isQuestion=args.question,
@@ -131,16 +93,13 @@ if __name__=='__main__':
         issue=config["issue"],
         addresses=[config["email"]],
         folder=config["folder"],
-        question=question_config,
-        answer=answer_config,
+        link=config["link"],
         text="",
     ))
 
-    # Do not overrid config when debugging
+    # Do not override config when debugging
     if not args.debug:
         with open(args.config, 'w') as f:
             # Update yaml file values
             old_config["issue"] = new_config.issue
-            old_config["question"]["cutoff"] = new_config.question.cutoff
-            old_config["answer"]["cutoff"] = new_config.answer.cutoff
             yaml.dump(old_config, f, default_flow_style=False)

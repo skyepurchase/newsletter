@@ -2,13 +2,6 @@ from dataclasses import dataclass
 
 
 @dataclass
-class FormConfig:
-    id: str
-    cutoff: str
-    link: str
-
-
-@dataclass
 class NewsletterConfig:
     isQuestion: bool
     isAnswer: bool
@@ -21,9 +14,7 @@ class NewsletterConfig:
     addresses: list[str]
     folder: str
     text: str
-
-    question: FormConfig
-    answer: FormConfig
+    link: str
 
     password: str
 
