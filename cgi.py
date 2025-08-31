@@ -7,7 +7,8 @@ from .utils.database import (
     get_newsletters,
     get_questions,
     get_responses,
-    insert_answer
+    insert_answer,
+    insert_question
 )
 
 from typing import DefaultDict, Tuple
@@ -15,7 +16,7 @@ from typing import DefaultDict, Tuple
 DIR = os.path.dirname(__file__)
 NOW = datetime.now()
 # TODO: don't hardcode this
-ISSUE_NUMBER = 11
+ISSUE_NUMBER = 12
 SWITCH = datetime.strptime("20250831", "%Y%m%d")
 
 
@@ -68,6 +69,38 @@ def authenticate(
             break
 
     return verified, newsletter_id, title
+
+
+def render_question_form(
+    title: str,
+    passcode: str,
+    HttpResponse
+) -> None:
+    """
+    Render the question submission form for the given newsletter.
+
+    Parameters
+    ----------
+    title : str
+        The title of the newsletter (prevents unnecessary database calls)
+    passcode : str
+        The user submitted passcode
+    HttpResponse
+        An Exception object to throw which is handled by the HTTP server
+    """
+    html = open(os.path.join(
+        DIR, "templates/question_form.html"
+    )).read()
+
+    values = {
+        "PASSCODE": passcode,
+        "TITLE": f"{title} {ISSUE_NUMBER}"
+    }
+
+    print("Content-Type: text/html")
+    print("Status: 200\n")
+
+    print(format_html(html, values))
 
 
 def render_answer_form(
@@ -262,7 +295,7 @@ def render(
 
     verified, n_id, title = authenticate(passcode)
     if verified:
-        # TODO: store the dates in the database
+        # TODO: Change based on the week of the year
         if NOW >= SWITCH:
             render_newsletter(
                 title, n_id, HttpResponse
@@ -328,6 +361,44 @@ The suitable error to throw HTTP Responses
         created, error = insert_answer(name, responses)
         if created:
             raise HttpResponse(201, "Thank you for submitting you answers :).")
+        else:
+            raise HttpResponse(500, error)
+    else:
+        raise HttpResponse(401, "How did you manage that? Don't tapper with things please.")
+
+
+def question_submit(
+    parameters: dict,
+    HttpResponse
+):
+    """
+    Add a users questions to the database if they are authorised.
+
+    Parameters
+    ----------
+    parameters : dict
+        The dict of processed POST parameters
+    HttpResponse : Error
+The suitable error to throw HTTP Responses
+    """
+    passcode = parameters["unlock"]
+    if not isinstance(passcode, str):
+        # Should only happen if people tamper with URL >:(
+        raise HttpResponse(
+            400,
+            f"Expected 'unlock' to be of type `str` but received {type(passcode)}"
+        )
+
+    verified, n_id, _ = authenticate(passcode)
+    if verified:
+        name = parameters["name"]
+        question = parameters["question"]
+
+        created, error = insert_question(
+            n_id, ISSUE_NUMBER, name, question
+        )
+        if created:
+            raise HttpResponse(201, "Thank you for submitting you question :).")
         else:
             raise HttpResponse(500, error)
     else:

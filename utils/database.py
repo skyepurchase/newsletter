@@ -122,6 +122,43 @@ def get_questions(
     return default, submitted
 
 
+def get_responses(
+    newsletter_id: int,
+    issue: int
+) -> list:
+    conn, cursor = _get_connection()
+
+    results = []
+    try:
+        q_id_query = """
+        SELECT id, creator, text FROM questions
+        WHERE newsletter_id=%s AND issue=%s
+        """
+        cursor.execute(q_id_query, (newsletter_id, issue))
+        questions = cursor.fetchall()
+
+        for question in questions:
+            q_id, creator, question = question
+
+            query = """
+            SELECT name, text, img_path
+            FROM answers
+            WHERE answers.question_id=%s
+            """
+            cursor.execute(query, (q_id,))
+            responses = cursor.fetchall()
+
+            results.append((creator, question, responses))
+    except TypeError:
+        logger.error("Failed to retrieve responses due to type error: %s", traceback.format_exc())
+    finally:
+        cursor.close()
+        conn.close()
+        logger.info("Connection closed")
+
+    return results
+
+
 def insert_answer(
     name: str,
     responses: dict
@@ -173,41 +210,53 @@ def insert_answer(
     return success, error_text
 
 
-def get_responses(
+def insert_question(
     newsletter_id: int,
-    issue: int
-) -> list:
+    issue: int,
+    name: str,
+    question: str,
+) -> Tuple[bool, Optional[str]]:
+    """
+    Insert the question for a specific user.
+
+    Parameters
+    ----------
+    newsletter_id : int
+        The id of the target newsletter
+    issue : int
+        The newsletter issue the question belongs to
+    name : str
+        The name of the user
+    question : str
+        The question to be inserted
+    """
     conn, cursor = _get_connection()
 
-    results = []
+    success = True
+    error_text: Optional[str] = None
     try:
-        q_id_query = """
-        SELECT id, creator, text FROM questions
-        WHERE newsletter_id=%s AND issue=%s
+        query = """
+        INSERT INTO questions (newsletter_id, creator, text, issue)
+        VALUES (%s, %s, %s, %s);
         """
-        cursor.execute(q_id_query, (newsletter_id, issue))
-        questions = cursor.fetchall()
+        values = (
+            newsletter_id, name, question, issue
+        )
 
-        for question in questions:
-            q_id, creator, question = question
+        cursor.execute(query, values)
+        conn.commit()
+    except Error as error:
+        logger.error("Failed to submit answers, rollback: %s", traceback.format_exc())
 
-            query = """
-            SELECT name, text, img_path
-            FROM answers
-            WHERE answers.question_id=%s
-            """
-            cursor.execute(query, (q_id,))
-            responses = cursor.fetchall()
-
-            results.append((creator, question, responses))
-    except TypeError:
-        logger.error("Failed to retrieve responses due to type error: %s", traceback.format_exc())
+        conn.rollback()
+        success = False
+        error_text = error.msg
     finally:
         cursor.close()
         conn.close()
         logger.info("Connection closed")
 
-    return results
+    return success, error_text
 
 
 def create_newsletter(title: str, pass_hash: bytes) -> bool:
