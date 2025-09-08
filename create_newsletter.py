@@ -1,16 +1,37 @@
+import os, yaml
 from getpass import getpass
 from argparse import ArgumentParser
 
-from utils import hash_passcode
-from database import create_newsletter
+from utils.html import hash_passcode
+from utils.database import create_newsletter
 
 
 if __name__=='__main__':
     parser = ArgumentParser("Create Newsletter")
-    parser.add_argument("--title", help="The title of the newsletter")
+    parser.add_argument("--title", required=True, help="The title of the newsletter.")
+    parser.add_argument("--folder", required=True, help="The folder to store metadata.")
+    parser.add_argument("--email", required=True, help="The email to be used when sending out requests.")
 
     args = parser.parse_args()
     passcode = getpass("Passcode: ")
     pass_hash = hash_passcode(passcode)
 
-    create_newsletter(args.title, pass_hash)
+    if not os.path.isdir(args.folder):
+        os.makedirs(args.folder)
+
+    base_config = {
+        "name": args.title,
+        "email": args.email,
+        "folder": args.folder,
+        "link": "https://skye.purchasethe.uk/projects/newsletter/",
+        "issue": 1
+    }
+
+    with open(os.path.join(args.folder, "config.yaml")) as f:
+        yaml.dump(base_config, f)
+    with open(os.path.join(args.folder, "emails.txt")) as f:
+        pass
+
+    print(f"Update {os.path.join(args.folder, "emails.txt")} to include the emails of the participants.")
+
+    create_newsletter(args.title, pass_hash, args.folder)

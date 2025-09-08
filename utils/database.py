@@ -259,7 +259,11 @@ def insert_question(
     return success, error_text
 
 
-def create_newsletter(title: str, pass_hash: bytes) -> bool:
+def create_newsletter(
+    title: str,
+    pass_hash: bytes,
+    folder: str
+) -> bool:
     """
     Create a new newsletter entry
 
@@ -269,6 +273,8 @@ def create_newsletter(title: str, pass_hash: bytes) -> bool:
         The title of the newsletter
     pass_hash : bytes
         The hash of the newsletter passcode
+    folder : str
+        The folder where metadata and config is stored
 
     Returns
     -------
@@ -277,8 +283,8 @@ def create_newsletter(title: str, pass_hash: bytes) -> bool:
     """
     conn, cursor = _get_connection()
 
-    query = "INSERT INTO newsletters (title, passcode) VALUES (%s, %s);"
-    values = (title, pass_hash)
+    query = "INSERT INTO newsletters (title, passcode, folder) VALUES (%s, %s, %s);"
+    values = (title, pass_hash, folder)
     success = True
     try:
         cursor.execute(query, values)
