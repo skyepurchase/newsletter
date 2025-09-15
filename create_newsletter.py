@@ -15,7 +15,8 @@ if __name__=='__main__':
     passcode = getpass("Passcode: ")
     pass_hash = hash_passcode(passcode)
 
-    folder = args.title.lower().replace(" ", "_")
+    folder_name = args.title.lower().replace(" ", "_")
+    folder = os.path.join("public_html/cgi-bin/newsletter/", folder_name)
 
     if not os.path.isdir(folder):
         os.makedirs(folder)
