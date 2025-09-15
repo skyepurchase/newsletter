@@ -6,6 +6,7 @@ venv/
 # Newsletter configs
 cornerly_news/
 spot_of_news/
+lethal_company/
 
 # Python
 __pycache__/
