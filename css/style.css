@@ -171,6 +171,10 @@ nav .menu-btn {
 
 /* newsletter {{{ */
 /* form {{{ */
+.newsletter {
+    padding-bottom: 5px;
+}
+
 .newsletter input,
 textarea {
     border: 2px solid #44475a;
