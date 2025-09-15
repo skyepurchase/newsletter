@@ -68,6 +68,7 @@ def authenticate(
 def render_question_form(
     title: str,
     passcode: str,
+    newsletter_id: int,
     issue: int,
     HttpResponse
 ) -> None:
@@ -80,6 +81,8 @@ def render_question_form(
         The title of the newsletter (prevents unnecessary database calls)
     passcode : str
         The user submitted passcode
+    newsletter_id : int
+        The newsletter ID
     issue : int
         The current issue number
     HttpResponse
@@ -89,10 +92,36 @@ def render_question_form(
     html = open(os.path.join(
         DIR, "templates/question_form.html"
     )).read()
+    submitted_questions = open(os.path.join(
+        DIR, "templates/submitted_question.html"
+    )).read()
+    question = open(os.path.join(
+        DIR, "templates/response.html"
+    )).read()
+
+    submission_html = ""
+    _, questions = get_questions(newsletter_id, issue)
+    for submission in questions:
+        _, name, text = submission
+
+        values = {
+            "NAME": name,
+            "TEXT": text
+        }
+
+        submission_html += format_html(
+            question[:], # Copy string
+            values
+        )
 
     values = {
         "PASSCODE": passcode,
-        "TITLE": f"{title} {issue}"
+        "TITLE": f"{title} {issue}",
+        "SUBMITTED": format_html(
+            submitted_questions, {
+                "RESPONSES": submission_html
+            }
+        )
     }
 
     print("Content-Type: text/html")
@@ -319,7 +348,7 @@ def render(
 
         if week % 4 in [1,2]:
             render_question_form(
-                title, passcode, issue, HttpResponse
+                title, passcode, n_id, issue, HttpResponse
             )
         elif week % 4 == 3:
             render_answer_form(
