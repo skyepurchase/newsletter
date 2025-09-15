@@ -1,5 +1,8 @@
-import os, shutil, logging
+import os, shutil, logging, traceback
+
 from datetime import datetime
+
+import yaml
 
 from .utils.constants import LOG_TIME_FORMAT
 from .utils.html import verify, format_html
@@ -15,9 +18,6 @@ from typing import DefaultDict, Tuple
 
 DIR = os.path.dirname(__file__)
 NOW = datetime.now()
-# TODO: don't hardcode this
-ISSUE_NUMBER = 12
-SWITCH = datetime.strptime("20250831", "%Y%m%d")
 
 
 formatter = logging.Formatter(
@@ -28,11 +28,12 @@ logger = logging.getLogger(__name__)
 handler = logging.FileHandler("/home/atp45/logs/newsletter")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
+logger.setLevel(logging.DEBUG)
 
 
 def authenticate(
     passcode: str
-) -> Tuple[bool, int, str]:
+) -> Tuple[bool, int, str, str]:
     """
     Check whether a user is verified and then return the relevant newsletter details.
 
@@ -49,31 +50,25 @@ def authenticate(
         The id of the authenticated newsletter
     title : str
         The title of the authenticated newsletter
+    folder : str
+        The folder storing metadata for the newsletter
     """
     newsletters = get_newsletters()
 
-    verified = False
-    title = ""
-    newsletter_id = -1
     for entry in newsletters:
-        n_id, n_title, n_hash = entry
+        n_id, n_title, n_hash, n_folder = entry
         assert isinstance(n_hash, bytes), "SQL returned a hash that was not in bytes."
 
-        verified = verify(
-            passcode,
-            n_hash
-        )
-        if verified:
-            title = n_title
-            newsletter_id = n_id
-            break
+        if verify(passcode, n_hash):
+            return True, n_id, n_title, n_folder
 
-    return verified, newsletter_id, title
+    return False, -1, "", ""
 
 
 def render_question_form(
     title: str,
     passcode: str,
+    issue: int,
     HttpResponse
 ) -> None:
     """
@@ -85,16 +80,19 @@ def render_question_form(
         The title of the newsletter (prevents unnecessary database calls)
     passcode : str
         The user submitted passcode
+    issue : int
+        The current issue number
     HttpResponse
         An Exception object to throw which is handled by the HTTP server
     """
+    logger.info("Rendering question form")
     html = open(os.path.join(
         DIR, "templates/question_form.html"
     )).read()
 
     values = {
         "PASSCODE": passcode,
-        "TITLE": f"{title} {ISSUE_NUMBER}"
+        "TITLE": f"{title} {issue}"
     }
 
     print("Content-Type: text/html")
@@ -107,6 +105,7 @@ def render_answer_form(
     title: str,
     passcode: str,
     newsletter_id: int,
+    issue: int,
     HttpResponse
 ) -> None:
     """
@@ -120,9 +119,12 @@ def render_answer_form(
         The user submitted passcode
     newsletter_id : int
         The newsletter id
+    issue : int
+        The current issue number
     HttpResponse
         An Exception object to throw which is handled by the HTTP server
     """
+    logger.info("Rendering answer form")
     html = open(os.path.join(
         DIR, "templates/answer.html"
     )).read()
@@ -139,7 +141,7 @@ def render_answer_form(
         "templates/image_question.html"
     )).read()
 
-    base_questions, user_questions = get_questions(newsletter_id, ISSUE_NUMBER)
+    base_questions, user_questions = get_questions(newsletter_id, issue)
 
     question_html = ""
     for question in user_questions:
@@ -179,7 +181,7 @@ def render_answer_form(
     values = {
         "PASSCODE": passcode,
         "QUESTIONS": question_html,
-        "TITLE": f"{title} {ISSUE_NUMBER}"
+        "TITLE": f"{title} {issue}"
     }
 
     print("Content-Type: text/html")
@@ -191,6 +193,7 @@ def render_answer_form(
 def render_newsletter(
     title: str,
     newsletter_id: int,
+    issue: int,
     HttpResponse
 ) -> None:
     """
@@ -205,6 +208,7 @@ def render_newsletter(
     HttpResponse
         An Exception object to throw which is handled by the HTTP server
     """
+    logger.info("Rendering published newsletter")
     html = open(os.path.join(
         DIR, "templates/newsletter.html"
     )).read()
@@ -218,10 +222,10 @@ def render_newsletter(
         DIR, "templates/question_board.html"
     )).read()
 
-    responses = get_responses(newsletter_id, ISSUE_NUMBER)
+    responses = get_responses(newsletter_id, issue)
 
     values = {
-        "TITLE": f"{title} {ISSUE_NUMBER}"
+        "TITLE": f"{title} {issue}"
     }
     n_html = ""
     for question in responses:
@@ -293,16 +297,37 @@ def render(
             f"Expected 'unlock' to be of type `str` but received {type(passcode)}"
         )
 
-    verified, n_id, title = authenticate(passcode)
+    verified, n_id, title, folder = authenticate(passcode)
     if verified:
-        # TODO: Change based on the week of the year
-        if NOW >= SWITCH:
-            render_newsletter(
-                title, n_id, HttpResponse
+        # Load config
+        try:
+            with open(
+                os.path.join(DIR, folder, "config.yaml"), "r"
+            ) as f:
+                config = yaml.safe_load(f)
+                issue = int(config["issue"])
+        except yaml.YAMLError:
+            logger.debug(traceback.format_exc())
+            raise HttpResponse(503, "Error loading YAML configuration")
+
+        # Hack a Sunday start
+        week = NOW.isocalendar()[1]
+        day = NOW.isocalendar()[2]
+        if day == 7: week += 1
+
+        logger.debug(f"Issue: {issue}, Config folder: {folder}, stage: {week % 4}")
+
+        if week % 4 in [1,2]:
+            render_question_form(
+                title, passcode, issue, HttpResponse
+            )
+        elif week % 4 == 3:
+            render_answer_form(
+                title, passcode, n_id, issue, HttpResponse
             )
         else:
-            render_answer_form(
-                title, passcode, n_id, HttpResponse
+            render_newsletter(
+                title, n_id, issue, HttpResponse
             )
     else:
         raise HttpResponse(401, "Nice try, but that is not the passcode! If you are meant to find something try typing it in again.")
@@ -330,7 +355,7 @@ The suitable error to throw HTTP Responses
             f"Expected 'unlock' to be of type `str` but received {type(passcode)}"
         )
 
-    verified, _, _ = authenticate(passcode)
+    verified, _, _, _ = authenticate(passcode)
     if verified:
         responses = DefaultDict(
             lambda: {"img": None, "text": None}
@@ -389,13 +414,24 @@ The suitable error to throw HTTP Responses
             f"Expected 'unlock' to be of type `str` but received {type(passcode)}"
         )
 
-    verified, n_id, _ = authenticate(passcode)
+    verified, n_id, _, folder = authenticate(passcode)
     if verified:
+        # Load config
+        try:
+            with open(
+                os.path.join(DIR, folder, "config.yaml"), "r"
+            ) as f:
+                config = yaml.safe_load(f)
+                issue = config["issue"]
+        except yaml.YAMLError:
+            logger.debug(traceback.format_exc())
+            raise HttpResponse(503, "Error loading YAML configuration")
+
         name = parameters["name"]
         question = parameters["question"]
 
         created, error = insert_question(
-            n_id, ISSUE_NUMBER, name, question
+            n_id, issue, name, question
         )
         if created:
             raise HttpResponse(201, "Thank you for submitting you question :).")
