@@ -249,7 +249,7 @@ def insert_question(
         cursor.execute(query, values)
         conn.commit()
     except Error as error:
-        logger.error("Failed to submit answers, rollback: %s", traceback.format_exc())
+        logger.error("Failed to insert question, rollback: %s", traceback.format_exc())
 
         conn.rollback()
         success = False
@@ -260,6 +260,49 @@ def insert_question(
         logger.info("Connection closed")
 
     return success, error_text
+
+
+def insert_default_question(
+    newsletter_id: int,
+    issue: int,
+    text: str,
+    form: str
+) -> None:
+    """
+    Insert the provided text as default questions.
+
+    Parameters
+    ----------
+    newsletter_id : int
+        The id of the target newsletter
+    issue : int
+        The newsletter issue the question belongs to
+    text : str
+        The question text to be inserted
+    form : str
+        Whether the question is a text or image question
+    """
+    conn, cursor = _get_connection()
+
+    try:
+        query = """
+        INSERT INTO questions (newsletter_id, creator, text, issue, base, type)
+        VALUES (%s, %s, %s, %s, %s, %s);
+        """
+        values = (
+            newsletter_id, "SYS", text, issue, True, form
+        )
+
+        cursor.execute(query, values)
+        conn.commit()
+    except Error:
+        logger.error("Failed to insert question, rollback: %s", traceback.format_exc())
+
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+        logger.info("Connection closed")
 
 
 def create_newsletter(

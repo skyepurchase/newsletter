@@ -20,13 +20,21 @@ if __name__=='__main__':
 
     if not os.path.isdir(folder):
         os.makedirs(folder)
+        # Not the most secure but it's something
+        os.chmod(folder, 0o0710)
 
     base_config = {
         "name": args.title,
         "email": args.email,
         "folder": folder,
         "link": "https://skye.purchasethe.uk/projects/newsletter/",
-        "issue": 1
+        "issue": 1,
+        "passphrase": passcode,
+        "defaults": [
+            ("⛅ One Good Thing", "text"),
+            ("👀 Check It Out", "text"),
+            ("📸 Photo Wall", "image")
+        ]
     }
 
     with open(os.path.join(folder, "config.yaml"), "w") as f:
