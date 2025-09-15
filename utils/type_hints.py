@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import List
 
 
 @dataclass
@@ -11,7 +12,7 @@ class NewsletterConfig:
     name: str
     email: str
     issue: int
-    addresses: list[str]
+    addresses: List[str]
     folder: str
     text: str
     link: str
