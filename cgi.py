@@ -111,7 +111,8 @@ def render_question_form(
 
         submission_html += format_html(
             question[:], # Copy string
-            values
+            values,
+            sanitize=True
         )
 
     values = {
@@ -120,7 +121,7 @@ def render_question_form(
         "SUBMITTED": format_html(
             submitted_questions, {
                 "RESPONSES": submission_html
-            }
+            }, sanitize=True
         )
     }
 
@@ -183,7 +184,8 @@ def render_answer_form(
         }
         question_html += format_html(
             user_question[:], # Copy string
-            values
+            values,
+            sanitize=True
         )
 
     for question in base_questions:
@@ -273,7 +275,8 @@ def render_newsletter(
                     {
                         "NAME": name,
                         "TEXT": text
-                    }
+                    },
+                    sanitize=True
                 )
             else:
                 filename = img_path.split("/")[-1]

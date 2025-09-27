@@ -5,11 +5,18 @@ ITERATIONS = 100000
 HASH_ALGO = 'sha256'
 
 
-def format_html(html: str, replacements: dict) -> str:
+def format_html(
+    html: str,
+    replacements: dict,
+    sanitize: bool = False
+) -> str:
     for key, value in replacements.items():
-        cleaned = bleach.clean(value)
-        linkified = bleach.linkify(cleaned)
-        lined = linkified.replace("\n", "<br/>")
+        if sanitize:
+            cleaned = bleach.clean(value)
+            linkified = bleach.linkify(cleaned)
+            lined = linkified.replace("\n", "<br/>")
+        else:
+            lined = value
 
         html = html.replace(f"[{key}]", lined)
 
