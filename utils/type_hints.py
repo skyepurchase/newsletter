@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List
+from typing import List, Tuple
 
 
 @dataclass
@@ -20,3 +20,6 @@ class NewsletterConfig:
     password: str
 
     debug: bool = False
+
+QuestionResponse = Tuple[str, str, str]
+Response = Tuple[str, int, List[QuestionResponse]]

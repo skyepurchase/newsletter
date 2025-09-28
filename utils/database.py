@@ -3,8 +3,9 @@ import json, traceback, logging
 import mysql.connector
 from mysql.connector.errors import Error, IntegrityError, ProgrammingError
 
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
+from .type_hints import Response
 from .constants import LOG_TIME_FORMAT
 
 
@@ -128,30 +129,58 @@ def get_questions(
 def get_responses(
     newsletter_id: int,
     issue: int
-) -> list:
+) -> List[Response]:
     conn, cursor = _get_connection()
 
     results = []
-    try:
-        q_id_query = """
-        SELECT id, creator, text FROM questions
-        WHERE newsletter_id=%s AND issue=%s
-        """
-        cursor.execute(q_id_query, (newsletter_id, issue))
-        questions = cursor.fetchall()
 
-        for question in questions:
+    user_q_id_query = """
+    SELECT id, creator, text FROM questions
+    WHERE newsletter_id=%s AND issue=%s AND NOT base;
+    """
+
+    default_q_id_query = """
+    SELECT id, text FROM questions
+    WHERE newsletter_id=%s AND issue=%s AND base;
+    """
+
+    response_query = """
+    SELECT name, text, img_path
+    FROM answers
+    WHERE answers.question_id=%s
+    """
+
+    try:
+        cursor.execute(user_q_id_query, (newsletter_id, issue))
+        user_questions = cursor.fetchall()
+
+        cursor.execute(default_q_id_query, (newsletter_id, issue))
+        default_questions = cursor.fetchall()
+
+        for question in user_questions:
             q_id, creator, question = question
 
-            query = """
-            SELECT name, text, img_path
-            FROM answers
-            WHERE answers.question_id=%s
-            """
-            cursor.execute(query, (q_id,))
+            if not isinstance(q_id, int):
+                logger.debug(f"Expected q_id to be int but receieved {type(q_id)}")
+                raise TypeError(f"Expected q_id to be int but receieved {type(q_id)}")
+
+            cursor.execute(response_query, (q_id,))
             responses = cursor.fetchall()
 
             results.append((creator, question, responses))
+
+        for question in default_questions:
+            q_id, question = question
+
+            if not isinstance(q_id, int):
+                logger.debug(f"Expected q_id to be int but receieved {type(q_id)}")
+                raise TypeError(f"Expected q_id to be int but receieved {type(q_id)}")
+
+            cursor.execute(response_query, (q_id,))
+            responses = cursor.fetchall()
+
+            results.append(("", question, responses))
+
     except TypeError:
         logger.error("Failed to retrieve responses due to type error: %s", traceback.format_exc())
     finally:
