@@ -290,12 +290,14 @@ textarea {
 
 .newsletter .question {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     font-size: 16pt;
 }
 
 .newsletter .question font {
+    margin: 0px;
     margin-top: 21px;
+    margin-left: 10px;
     font-size: 16pt;
 }
 
@@ -304,12 +306,16 @@ textarea {
     display: flex;
     flex-direction: row;
     margin: 10px 0;
-    padding: 5px 20px;
+    padding: 10px 20px;
     box-shadow: 2px 2px 20px rgba(16, 16, 21, 0.8);
 }
 
 .newsletter .response font {
     margin-left: 0;
+    min-width: 20%;
+    min-height: 20%;
+    text-wrap: wrap;
+    word-wrap: break-word;
 }
 
 .newsletter .image_response {
