@@ -211,10 +211,6 @@ textarea {
     padding: 0;
 }
 
-.newsletter #caption {
-    margin-top: 10px;
-}
-
 .newsletter label {
     display: block;
     background-color: #44475a;
@@ -229,18 +225,25 @@ textarea {
     font-weight: bolder;
 }
 
+.newsletter .file-upload-container {
+    display: flex;
+    background-color: #44475a;
+    padding: 10px 10px 20px;
+    margin: 0;
+}
+
 .newsletter .file-upload {
     display: flex;
+    height: 50px;
     border-top: none;
     border-radius: 0;
-    padding-bottom: 20px;
-    padding-top: 0;
+    padding: 0;
 }
 
 .newsletter .file-upload div {
     border: 2px solid #bd93f9;
     border-radius: 4px;
-    width: fit-content;
+    height: fit-content;
     padding: 4px;
     color: #bd93f9;
 }
@@ -256,6 +259,13 @@ textarea {
     padding-top: 5px;
     padding-left: 10px;
     color: #8be9fd;
+}
+
+.newsletter .file-upload-container .button {
+    padding-top: 5px;
+    padding-right: 20px;
+    font-weight: bold;
+    color: #bd93f9;
 }
 
 .newsletter .title {
@@ -286,6 +296,9 @@ textarea {
 
 .newsletter .question_box p {
     margin-left: 10px;
+    max-width: 80%;
+    text-wrap: wrap;
+    word-wrap: break-word;
 }
 
 .newsletter .question {

@@ -1,4 +1,20 @@
 <label for="[IMG_ID]">[QUESTION]</label><br>
+<div class="file-upload-container">
+    <label class="file-upload">
+        <input type="file" id="[IMG_ID]" name="[IMG_ID]" accept=".jpg,.jpeg,.png,.gif" onchange="
+                document.getElementById('filename').innerHTML = document.getElementById('image').value.split('\\')[2];
+                document.getElementById('remove-file').style.display = 'unset'
+        ">
+        <div>Upload image</div>
+        <p id="filename"></p>
+    </label>
+    <div class="button" id="remove-file" style="display: none;" onclick="
+        document.getElementById('filename').innerHTML = '';
+        document.getElementById('image').value = '';
+        document.getElementById('remove-file').style.display = 'none'
+    ">X</div>
+</div>
+
 <label class="file-upload">
     <input id="[IMG_ID]" type="file" name="[IMG_ID]" accept=".jpg,.jpeg,.png,.gif">
     <div>Upload image</div>
