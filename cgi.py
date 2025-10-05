@@ -122,7 +122,7 @@ def render_question_form(
         "SUBMITTED": format_html(
             submitted_questions, {
                 "RESPONSES": submission_html
-            }, sanitize=True
+            }
         )
     }
 
