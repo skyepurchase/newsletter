@@ -11,6 +11,7 @@ from .utils.database import (
     get_questions,
     get_responses,
     insert_answer,
+    insert_default_questions,
     insert_question
 )
 
@@ -350,6 +351,17 @@ def render(
         logger.debug(f"Issue: {issue}, Config folder: {folder}, stage: {week % 4}")
 
         if week % 4 in [1,2]:
+            default_questions, _ = get_questions(n_id, issue)
+
+            if len(default_questions) == 0:
+                logger.info("Inserting default questions")
+                success = insert_default_questions(
+                    n_id, issue, config["defaults"]
+                )
+
+                if not success:
+                    logger.warning("Failed to add default questions. Will attempt next time")
+
             render_question_form(
                 title, passcode, n_id, issue, HttpResponse
             )

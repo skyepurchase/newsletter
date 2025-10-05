@@ -291,12 +291,11 @@ def insert_question(
     return success, error_text
 
 
-def insert_default_question(
+def insert_default_questions(
     newsletter_id: int,
     issue: int,
-    text: str,
-    form: str
-) -> None:
+    questions: List[Tuple[str, str]]
+) -> bool:
     """
     Insert the provided text as default questions.
 
@@ -318,20 +317,26 @@ def insert_default_question(
         INSERT INTO questions (newsletter_id, creator, text, issue, base, type)
         VALUES (%s, %s, %s, %s, %s, %s);
         """
-        values = (
-            newsletter_id, "SYS", text, issue, True, form
-        )
 
-        cursor.execute(query, values)
+        for text, form in questions:
+            values = (
+                newsletter_id, "SYS", text,
+                issue, True, form
+            )
+            cursor.execute(query, values)
+
         conn.commit()
     except Error:
         logger.error("Failed to insert question, rollback: %s", traceback.format_exc())
 
         conn.rollback()
+        return False
     finally:
         cursor.close()
         conn.close()
         logger.info("Connection closed")
+
+    return True
 
 
 def create_newsletter(
