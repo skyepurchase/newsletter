@@ -474,6 +474,9 @@ The suitable error to throw HTTP Responses
         name = parameters["name"]
         question = parameters["question"]
 
+        if name == "" or question == "":
+            raise HttpResponse(422, "No name or question provided")
+
         created, error = insert_question(
             n_id, issue, name, question
         )
