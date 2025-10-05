@@ -407,8 +407,12 @@ The suitable error to throw HTTP Responses
         name = ""
 
         for key, response in parameters.items():
-            if key=="unlock": continue
-            if key=="name": name=response; continue
+            if key == "unlock": continue
+            if key == "name":
+                if response == "":
+                    raise HttpResponse(422, "No name provided")
+
+                name=response
 
             parts = key.split("_")
             if len(parts) != 2:
