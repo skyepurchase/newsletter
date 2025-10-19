@@ -335,7 +335,7 @@ def render(
         # Load config
         try:
             with open(
-                os.path.join(DIR, folder, "config.yaml"), "r"
+                os.path.join("/home/atp45", folder, "config.yaml"), "r"
             ) as f:
                 config = yaml.safe_load(f)
                 issue = int(config["issue"])
@@ -467,7 +467,7 @@ The suitable error to throw HTTP Responses
         # Load config
         try:
             with open(
-                os.path.join(DIR, folder, "config.yaml"), "r"
+                os.path.join("/home/atp45", folder, "config.yaml"), "r"
             ) as f:
                 config = yaml.safe_load(f)
                 issue = config["issue"]

@@ -16,7 +16,7 @@ if __name__=='__main__':
     pass_hash = hash_passcode(passcode)
 
     folder_name = args.title.lower().replace(" ", "_")
-    folder = os.path.join("public_html/cgi-bin/newsletter/", folder_name)
+    folder = os.path.join("newsletters/", folder_name)
 
     if not os.path.isdir(folder):
         os.makedirs(folder)
@@ -31,16 +31,16 @@ if __name__=='__main__':
         "issue": 1,
         "passphrase": passcode,
         "defaults": [
-            ("⛅ One Good Thing", "text"),
-            ("👀 Check It Out", "text"),
-            ("📸 Photo Wall", "image")
+            ["⛅ One Good Thing", "text"],
+            ["👀 Check It Out", "text"],
+            ["📸 Photo Wall", "image"]
         ]
     }
 
     with open(os.path.join(folder, "config.yaml"), "w") as f:
         yaml.dump(base_config, f)
-    with open(os.path.join(folder, "emails.txt"), "w") as f:
-        pass
+    open(os.path.join(folder, "emails.txt"), "w").close()
+    open(os.path.join(folder, "log"), "w").close()
 
     print(f"Update {os.path.join(folder, 'emails.txt')} to include the emails of the participants.")
 
