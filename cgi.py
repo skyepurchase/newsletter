@@ -413,10 +413,11 @@ The suitable error to throw HTTP Responses
                     raise HttpResponse(422, "No name provided")
 
                 name=response
+                continue
 
             parts = key.split("_")
             if len(parts) != 2:
-                raise HttpResponse(400, "Form keys are not in expected format. Do not mess with the post request!")
+                raise HttpResponse(400, "Form keys not in two parts. Do not mess with the post request!")
 
             q_type = parts[0]
             q_id = parts[1]
