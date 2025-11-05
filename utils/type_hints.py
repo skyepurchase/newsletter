@@ -1,11 +1,5 @@
 from dataclasses import dataclass
-
-
-@dataclass
-class FormConfig:
-    id: str
-    cutoff: str
-    link: str
+from typing import List, Tuple
 
 
 @dataclass
@@ -18,13 +12,14 @@ class NewsletterConfig:
     name: str
     email: str
     issue: int
-    addresses: list[str]
+    addresses: List[str]
     folder: str
     text: str
-
-    question: FormConfig
-    answer: FormConfig
+    link: str
 
     password: str
 
     debug: bool = False
+
+QuestionResponse = Tuple[str, str, str]
+Response = Tuple[str, int, List[QuestionResponse]]

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE-edge">
+    <meta name="viewpoint" content="width=device.width, initial-scale=1.0">
+    <title>[TITLE]</title>
+    <link rel="icon" type="image/x-icon" href="../images/favicon.ico">
+    <link rel="stylesheet" href="../css/newsletter.css" />
+</head>
+
+<body>
+    <section class="main">
+        <!--navigation {{{-->
+        <nav>
+            <!--logo-->
+            <a href="../" class="logo">
+                <p>Home</p>
+            </a>
+            <!--menu-->
+            <ul class="menu">
+                <li><a href="../projects/">Projects</a></li>
+                <li><a href="../blog/" class="blog">Blog</a></li>
+            </ul>
+        </nav>
+        <!--}}}-->
+
+        <!--form {{{ -->
+        <div class="container">
+            <div class="content">
+                <form class="newsletter" action="./newsletter_submit_question.py" method="post"
+                    enctype="multipart/form-data">
+                    <div class="title">
+                        <h1>[TITLE]</h1>
+                    </div>
+
+                    <label for="name">🏷️ Name</label><br>
+                    <textarea type="text" id="name" name="name" wrap="soft"></textarea><br>
+
+                    <label for="question">❓ Question</label><br>
+                    <textarea type="text" id="question" name="question" wrap="soft"></textarea><br>
+
+                    <!--Keep the already passed code-->
+                    <input style="display: none;" type="password" name="unlock" value="[PASSCODE]" />
+                    <input type="submit" value="Submit" />
+
+                    [SUBMITTED]
+                </form>
+            </div>
+        </div>
+        <!--}}}-->
+    </section>
+</body>
+
+</html>
