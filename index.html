@@ -7,7 +7,7 @@
     <meta name="viewpoint" content="width=device.width, initial-scale=1.0">
     <title>Newsletter</title>
     <link rel="icon" type="image/x-icon" href="../../images/favicon.ico">
-    <link rel="stylesheet" href="../../css/newsletter.css" />
+    <link rel="stylesheet" href="../../css/newsletter.css?v=2" />
 </head>
 
 <body>
@@ -29,12 +29,15 @@
         <!--form {{{ -->
         <div class="container">
             <div class="content">
-                <form class="newsletter" action="../../cgi-bin/newsletter.py" method="post">
+                <form class="newsletter" action="../../cgi-bin/newsletter_unlock.py" method="post">
                     <div class="title">
                         <h1>Newsletter</h1>
                     </div>
                     <p>This is a dummy form. To see your relevant $NEWSLETTER_NAME form submit the relevant passcode
                         below.</p>
+                    <p class="disclaimer">This uses a single authentication cookie that contains no personal data but is
+                        essential. Technically under GDPR I do NOT need to tell you but I am very proud of my JSON web
+                        token implementation.</p>
                     <div class="passcode-btn">
                         <input type="password" name="unlock" placeholder="passcode" id="unlock-code" /><input
                             type="submit" value="Unlock" />
@@ -51,8 +54,7 @@
                     <label for="image">📸 Photo Wall</label><br>
                     <div class="file-upload-container">
                         <label class="file-upload">
-                            <input type="file" id="image"
-                                onchange="
+                            <input type="file" id="image" onchange="
                                     document.getElementById('filename').innerHTML = document.getElementById('image').value.split('\\')[2];
                                     document.getElementById('remove-file').style.display = 'unset'
                             ">

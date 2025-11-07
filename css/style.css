@@ -51,6 +51,11 @@ textarea:focus {
     outline: none;
 }
 
+.disclaimer {
+    color: #ffb86c;
+    font-weight: bold;
+}
+
 /*}}}*/
 
 /* navigation {{{*/

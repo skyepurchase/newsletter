@@ -68,7 +68,6 @@ def authenticate(
 
 def render_question_form(
     title: str,
-    passcode: str,
     newsletter_id: int,
     issue: int,
     HttpResponse
@@ -80,8 +79,6 @@ def render_question_form(
     ----------
     title : str
         The title of the newsletter (prevents unnecessary database calls)
-    passcode : str
-        The user submitted passcode
     newsletter_id : int
         The newsletter ID
     issue : int
@@ -117,7 +114,6 @@ def render_question_form(
         )
 
     values = {
-        "PASSCODE": passcode,
         "TITLE": f"{title} {issue}",
         "SUBMITTED": format_html(
             submitted_questions, {
@@ -134,7 +130,6 @@ def render_question_form(
 
 def render_answer_form(
     title: str,
-    passcode: str,
     newsletter_id: int,
     issue: int,
     HttpResponse
@@ -211,7 +206,6 @@ def render_answer_form(
             raise HttpResponse(500, f"question type {q_type} unknown.")
 
     values = {
-        "PASSCODE": passcode,
         "QUESTIONS": question_html,
         "TITLE": f"{title} {issue}"
     }
@@ -309,7 +303,7 @@ def render_newsletter(
 
 
 def render(
-    parameters: dict,
+    token: dict,
     HttpResponse # TODO: type hint this properly
 ) -> None:
     """
@@ -317,64 +311,64 @@ def render(
 
     Parameters
     ----------
-    parameters : dict
-        The dict of processed POST parameters
+    token : dict
+        The dict of processed JSON web token
     HttpResponse : Error
         The suitable error to throw HTTP Responses
     """
-    passcode = parameters["unlock"]
-    if not isinstance(passcode, str):
-        # Should only happen if people tamper with URL >:(
-        raise HttpResponse(
-            400,
-            f"Expected 'unlock' to be of type `str` but received {type(passcode)}"
+    try:
+        with open(
+            os.path.join(
+                "/home/atp45",
+                token["newsletter_folder"],
+                "config.yaml"
+            ), "r"
+        ) as f:
+            config = yaml.safe_load(f)
+            issue = int(config["issue"])
+    except yaml.YAMLError:
+        logger.debug(traceback.format_exc())
+        raise HttpResponse(503, "Error loading YAML configuration")
+
+    # Hack a Sunday start
+    week = NOW.isocalendar()[1]
+    day = NOW.isocalendar()[2]
+    if day == 7: week += 1
+
+    logger.debug(f"Issue: {issue}, Config folder: {token['newsletter_folder']}, stage: {week % 4}")
+
+    if week % 4 in [1,2]:
+        default_questions, _ = get_questions(
+            token['newsletter_id'], issue
         )
 
-    verified, n_id, title, folder = authenticate(passcode)
-    if verified:
-        # Load config
-        try:
-            with open(
-                os.path.join("/home/atp45", folder, "config.yaml"), "r"
-            ) as f:
-                config = yaml.safe_load(f)
-                issue = int(config["issue"])
-        except yaml.YAMLError:
-            logger.debug(traceback.format_exc())
-            raise HttpResponse(503, "Error loading YAML configuration")
-
-        # Hack a Sunday start
-        week = NOW.isocalendar()[1]
-        day = NOW.isocalendar()[2]
-        if day == 7: week += 1
-
-        logger.debug(f"Issue: {issue}, Config folder: {folder}, stage: {week % 4}")
-
-        if week % 4 in [1,2]:
-            default_questions, _ = get_questions(n_id, issue)
-
-            if len(default_questions) == 0:
-                logger.info("Inserting default questions")
-                success = insert_default_questions(
-                    n_id, issue, config["defaults"]
-                )
-
-                if not success:
-                    logger.warning("Failed to add default questions. Will attempt next time")
-
-            render_question_form(
-                title, passcode, n_id, issue, HttpResponse
+        if len(default_questions) == 0:
+            logger.info("Inserting default questions")
+            success = insert_default_questions(
+                token['newsletter_id'],
+                issue, config["defaults"]
             )
-        elif week % 4 == 3:
-            render_answer_form(
-                title, passcode, n_id, issue, HttpResponse
-            )
-        else:
-            render_newsletter(
-                title, n_id, issue, HttpResponse
-            )
+
+            if not success:
+                logger.warning("Failed to add default questions. Will attempt next time")
+
+        render_question_form(
+            token['newsletter_title'],
+            token['newsletter_id'],
+            issue, HttpResponse
+        )
+    elif week % 4 == 3:
+        render_answer_form(
+            token['newsletter_title'],
+            token['newsletter_id'],
+            issue, HttpResponse
+        )
     else:
-        raise HttpResponse(401, "Nice try, but that is not the passcode! If you are meant to find something try typing it in again.")
+        render_newsletter(
+            token['newsletter_title'],
+            token['newsletter_id'],
+            issue, HttpResponse
+        )
 
 
 def answer(
@@ -391,57 +385,46 @@ def answer(
     HttpResponse : Error
 The suitable error to throw HTTP Responses
     """
-    passcode = parameters["unlock"]
-    if not isinstance(passcode, str):
-        # Should only happen if people tamper with URL >:(
-        raise HttpResponse(
-            400,
-            f"Expected 'unlock' to be of type `str` but received {type(passcode)}"
-        )
+    responses = DefaultDict(
+        lambda: {"img": None, "text": None}
+    )
+    name = ""
 
-    verified, _, _, _ = authenticate(passcode)
-    if verified:
-        responses = DefaultDict(
-            lambda: {"img": None, "text": None}
-        )
-        name = ""
+    for key, response in parameters.items():
+        if key == "unlock": continue
+        if key == "name":
+            if response == "":
+                raise HttpResponse(422, "No name provided")
 
-        for key, response in parameters.items():
-            if key == "unlock": continue
-            if key == "name":
-                if response == "":
-                    raise HttpResponse(422, "No name provided")
+            name=response
+            continue
 
-                name=response
-                continue
+        parts = key.split("_")
+        if len(parts) != 2:
+            raise HttpResponse(400, "Form keys not in two parts. Do not mess with the post request!")
 
-            parts = key.split("_")
-            if len(parts) != 2:
-                raise HttpResponse(400, "Form keys not in two parts. Do not mess with the post request!")
+        q_type = parts[0]
+        q_id = parts[1]
 
-            q_type = parts[0]
-            q_id = parts[1]
-
-            if q_type=="question":
-                # Don't insert blank answers
-                if len(response) > 0:
-                    responses[q_id]["text"] = response
-            elif q_type=="image":
-                logger.info("Processing images upload")
-                responses[q_id]["img"] = response['path']
-            else:
-                raise HttpResponse(400, "Form keys are not in expected format. Do not mess with the post request!")
-
-        created, error = insert_answer(name, responses)
-        if created:
-            raise HttpResponse(201, "Thank you for submitting you answers :).")
+        if q_type=="question":
+            # Don't insert blank answers
+            if len(response) > 0:
+                responses[q_id]["text"] = response
+        elif q_type=="image":
+            logger.info("Processing images upload")
+            responses[q_id]["img"] = response['path']
         else:
-            raise HttpResponse(500, error)
+            raise HttpResponse(400, "Form keys are not in expected format. Do not mess with the post request!")
+
+    created, error = insert_answer(name, responses)
+    if created:
+        raise HttpResponse(201, "Thank you for submitting you answers :).")
     else:
-        raise HttpResponse(401, "How did you manage that? Don't tapper with things please.")
+        raise HttpResponse(500, error)
 
 
 def question_submit(
+    token: dict,
     parameters: dict,
     HttpResponse
 ):
@@ -450,44 +433,34 @@ def question_submit(
 
     Parameters
     ----------
+    token : dict
+        The dict of processed JSON web token
     parameters : dict
         The dict of processed POST parameters
     HttpResponse : Error
 The suitable error to throw HTTP Responses
     """
-    passcode = parameters["unlock"]
-    if not isinstance(passcode, str):
-        # Should only happen if people tamper with URL >:(
-        raise HttpResponse(
-            400,
-            f"Expected 'unlock' to be of type `str` but received {type(passcode)}"
-        )
+    # Load config
+    try:
+        with open(
+            os.path.join("/home/atp45", token["newsletter_folder"], "config.yaml"), "r"
+        ) as f:
+            config = yaml.safe_load(f)
+            issue = config["issue"]
+    except yaml.YAMLError:
+        logger.debug(traceback.format_exc())
+        raise HttpResponse(503, "Error loading YAML configuration")
 
-    verified, n_id, _, folder = authenticate(passcode)
-    if verified:
-        # Load config
-        try:
-            with open(
-                os.path.join("/home/atp45", folder, "config.yaml"), "r"
-            ) as f:
-                config = yaml.safe_load(f)
-                issue = config["issue"]
-        except yaml.YAMLError:
-            logger.debug(traceback.format_exc())
-            raise HttpResponse(503, "Error loading YAML configuration")
+    name = parameters["name"]
+    question = parameters["question"]
 
-        name = parameters["name"]
-        question = parameters["question"]
+    if name == "" or question == "":
+        raise HttpResponse(422, "No name or question provided")
 
-        if name == "" or question == "":
-            raise HttpResponse(422, "No name or question provided")
-
-        created, error = insert_question(
-            n_id, issue, name, question
-        )
-        if created:
-            raise HttpResponse(201, "Thank you for submitting you question :).")
-        else:
-            raise HttpResponse(500, error)
+    created, error = insert_question(
+        token["newsletter_id"], issue, name, question
+    )
+    if created:
+        raise HttpResponse(201, "Thank you for submitting you question :).")
     else:
-        raise HttpResponse(401, "How did you manage that? Don't tapper with things please.")
+        raise HttpResponse(500, error)
