@@ -328,7 +328,7 @@ def render(
             issue = int(config["issue"])
     except yaml.YAMLError:
         logger.debug(traceback.format_exc())
-        raise HttpResponse(503, "Error loading YAML configuration")
+        raise HttpResponse(500, "Error loading YAML configuration")
 
     # Hack a Sunday start
     week = NOW.isocalendar()[1]
@@ -449,7 +449,7 @@ The suitable error to throw HTTP Responses
             issue = config["issue"]
     except yaml.YAMLError:
         logger.debug(traceback.format_exc())
-        raise HttpResponse(503, "Error loading YAML configuration")
+        raise HttpResponse(500, "Error loading YAML configuration")
 
     name = parameters["name"]
     question = parameters["question"]
