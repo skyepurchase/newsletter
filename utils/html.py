@@ -18,6 +18,7 @@ def format_html(
         else:
             lined = value
 
+        if lined is None: lined = ""
         html = html.replace(f"[{key}]", lined)
 
     return html
