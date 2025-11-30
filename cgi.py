@@ -15,7 +15,7 @@ from .utils.database import (
     insert_question
 )
 
-from typing import DefaultDict, Tuple
+from typing import DefaultDict, Optional, Tuple
 
 DIR = os.path.dirname(__file__)
 NOW = datetime.now()
@@ -242,7 +242,7 @@ def render_newsletter(
         DIR, "templates/response.html"
     )).read()
     img_response = open(os.path.join(
-        DIR, "templates/image_response.html"
+       DIR, "templates/image_response.html"
     )).read()
     question_board = open(os.path.join(
         DIR, "templates/question_board.html"
@@ -304,6 +304,7 @@ def render_newsletter(
 
 def render(
     token: dict,
+    issue: Optional[int],
     HttpResponse # TODO: type hint this properly
 ) -> None:
     """
@@ -313,6 +314,8 @@ def render(
     ----------
     token : dict
         The dict of processed JSON web token
+    issue : int
+        The issue number to render
     HttpResponse : Error
         The suitable error to throw HTTP Responses
     """
@@ -325,28 +328,42 @@ def render(
             ), "r"
         ) as f:
             config = yaml.safe_load(f)
-            issue = int(config["issue"])
+            curr_issue = int(config["issue"])
     except yaml.YAMLError:
         logger.debug(traceback.format_exc())
         raise HttpResponse(500, "Error loading YAML configuration")
+
+    if issue:
+        if issue > curr_issue:
+            raise HttpResponse(404, f"Issue {issue} does not exist for {token['newsletter_title']}")
+        if issue < curr_issue:
+            logger.debug(f"Rendering historical issue no. {issue}")
+            # An old issue so just render it
+            render_newsletter(
+                token["newsletter_title"],
+                token["newsletter_id"],
+                issue,
+                HttpResponse
+            )
+            return
 
     # Hack a Sunday start
     week = NOW.isocalendar()[1]
     day = NOW.isocalendar()[2]
     if day == 7: week += 1
 
-    logger.debug(f"Issue: {issue}, Config folder: {token['newsletter_folder']}, stage: {week % 4}")
+    logger.debug(f"Issue: {curr_issue}, Config folder: {token['newsletter_folder']}, stage: {week % 4}")
 
     if week % 4 in [1,2]:
         default_questions, _ = get_questions(
-            token['newsletter_id'], issue
+            token['newsletter_id'], curr_issue
         )
 
         if len(default_questions) == 0:
             logger.info("Inserting default questions")
             success = insert_default_questions(
                 token['newsletter_id'],
-                issue, config["defaults"]
+                curr_issue, config["defaults"]
             )
 
             if not success:
@@ -355,19 +372,19 @@ def render(
         render_question_form(
             token['newsletter_title'],
             token['newsletter_id'],
-            issue, HttpResponse
+            curr_issue, HttpResponse
         )
     elif week % 4 == 3:
         render_answer_form(
             token['newsletter_title'],
             token['newsletter_id'],
-            issue, HttpResponse
+            curr_issue, HttpResponse
         )
     else:
         render_newsletter(
             token['newsletter_title'],
             token['newsletter_id'],
-            issue, HttpResponse
+            curr_issue, HttpResponse
         )
 
 
