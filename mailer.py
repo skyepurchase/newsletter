@@ -55,9 +55,6 @@ def main(config: NewsletterConfig) -> NewsletterConfig:
     email = generate_email_request(config)
     send_email(email, config)
 
-    if config.isQuestion:
-        config.issue += 1
-
     return config
 
 
