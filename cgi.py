@@ -19,6 +19,8 @@ from typing import DefaultDict, Optional, Tuple
 
 DIR = os.path.dirname(__file__)
 NOW = datetime.now()
+HEADER = open(
+    os.path.join(DIR, "templates/header.html")).read()
 
 
 formatter = logging.Formatter(
@@ -114,6 +116,7 @@ def render_question_form(
         )
 
     values = {
+        "HEADER": HEADER,
         "TITLE": f"{title} {issue}",
         "SUBMITTED": format_html(
             submitted_questions, {
@@ -206,6 +209,7 @@ def render_answer_form(
             raise HttpResponse(500, f"question type {q_type} unknown.")
 
     values = {
+        "HEADER": HEADER,
         "QUESTIONS": question_html,
         "TITLE": f"{title} {issue}"
     }
@@ -294,7 +298,10 @@ def render_newsletter(
         n_html += format_html(
             question_board, q_values
         )
-    values["NEWSLETTER"] = n_html
+    values = {
+        "HEADER": HEADER,
+        "NEWSLETTER": n_html
+    }
 
     print("Content-Type: text/html")
     print("Status: 200\n")
