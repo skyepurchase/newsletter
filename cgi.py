@@ -319,19 +319,35 @@ def render(
     HttpResponse : Error
         The suitable error to throw HTTP Responses
     """
+    config_file = open(
+        os.path.join(
+            "/home/atp45",
+            token["newsletter_folder"],
+            "config.yaml"
+        ), "r"
+    )
     try:
-        with open(
-            os.path.join(
-                "/home/atp45",
-                token["newsletter_folder"],
-                "config.yaml"
-            ), "r"
-        ) as f:
-            config = yaml.safe_load(f)
-            curr_issue = int(config["issue"])
+        config = yaml.safe_load(config_file)
     except yaml.YAMLError:
         logger.debug(traceback.format_exc())
         raise HttpResponse(500, "Error loading YAML configuration")
+    finally:
+        config_file.close()
+
+    issue_file = open(
+        os.path.join(
+            "/home/atp45",
+            token["newsletter_folder"],
+            "issue"
+        ), "r"
+    )
+    try:
+        curr_issue = int(issue_file.read())
+    except ValueError:
+        logger.debug(traceback.format_exc())
+        raise HttpResponse(500, "Error loading issue file")
+    finally:
+        issue_file.close()
 
     if issue:
         if issue > curr_issue:
