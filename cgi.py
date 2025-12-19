@@ -19,8 +19,11 @@ from typing import DefaultDict, Optional, Tuple
 
 DIR = os.path.dirname(__file__)
 NOW = datetime.now()
+
 HEADER = open(
     os.path.join(DIR, "templates/header.html")).read()
+NAVBAR = open(
+    os.path.join(DIR, "templates/navbar.html")).read()
 
 
 formatter = logging.Formatter(
@@ -117,6 +120,7 @@ def render_question_form(
 
     values = {
         "HEADER": HEADER,
+        "NAVBAR": NAVBAR,
         "TITLE": f"{title} {issue}",
         "SUBMITTED": format_html(
             submitted_questions, {
@@ -210,6 +214,7 @@ def render_answer_form(
 
     values = {
         "HEADER": HEADER,
+        "NAVBAR": NAVBAR,
         "QUESTIONS": question_html,
         "TITLE": f"{title} {issue}"
     }
@@ -300,6 +305,7 @@ def render_newsletter(
         )
     values = {
         "HEADER": HEADER,
+        "NAVBAR": NAVBAR,
         "NEWSLETTER": n_html
     }
 
