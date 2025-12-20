@@ -259,9 +259,6 @@ def render_newsletter(
 
     responses = get_responses(newsletter_id, issue)
 
-    values = {
-        "TITLE": f"{title} {issue}"
-    }
     n_html = ""
     for question in responses:
         creator, q_text, q_responses = question
@@ -306,6 +303,7 @@ def render_newsletter(
     values = {
         "HEADER": HEADER,
         "NAVBAR": NAVBAR,
+        "TITLE": f"{title} {issue}",
         "NEWSLETTER": n_html
     }
 
