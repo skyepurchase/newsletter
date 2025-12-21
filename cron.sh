@@ -11,12 +11,12 @@ for newsletter in /home/atp45/newsletters/*; do
     issue="$newsletter/issue";
 
     if [ $week_part -eq 3 ]; then
-        old=$(cat "$issue");
-        new=$(expr $old + 1);
-        echo $new > "$issue";
         python3 "$newsletter_dir/mailer.py" -c "$config";
         echo "INFO $(date): $newsletter newsletter published";
     elif [ $week_part -eq 0 ]; then
+        old=$(cat "$issue");
+        new=$(expr $old + 1);
+        echo $new > "$issue";
         python3 "$newsletter_dir/mailer.py" -q -c "$config";
         echo "INFO $(date): $newsletter newsletter question request 1";
     elif [ $week_part -eq 1 ]; then
