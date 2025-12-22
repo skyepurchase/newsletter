@@ -20,6 +20,11 @@ from typing import DefaultDict, Optional, Tuple
 DIR = os.path.dirname(__file__)
 NOW = datetime.now()
 
+HEADER = open(
+    os.path.join(DIR, "templates/header.html")).read()
+NAVBAR = open(
+    os.path.join(DIR, "templates/navbar.html")).read()
+
 
 formatter = logging.Formatter(
     '[%(asctime)s %(levelname)s] %(message)s',
@@ -66,10 +71,31 @@ def authenticate(
     return False, -1, "", ""
 
 
+def make_navbar(
+    issue: int,
+    curr_issue: int
+) -> str:
+    p_valid = "disable" if issue <= 0 else ""
+    n_valid = "disable" if issue >= curr_issue else ""
+    c_valid = "disable" if issue == curr_issue else ""
+
+    return format_html(
+        NAVBAR,
+        {
+            "PREV" : str(issue - 1),
+            "P_VALID": p_valid,
+            "NEXT" : str(issue + 1),
+            "N_VALID": n_valid,
+            "C_VALID": c_valid
+        }
+     )
+
+
 def render_question_form(
     title: str,
     newsletter_id: int,
     issue: int,
+    curr_issue: int,
     HttpResponse
 ) -> None:
     """
@@ -114,6 +140,8 @@ def render_question_form(
         )
 
     values = {
+        "HEADER": HEADER,
+        "NAVBAR": make_navbar(issue, curr_issue),
         "TITLE": f"{title} {issue}",
         "SUBMITTED": format_html(
             submitted_questions, {
@@ -132,6 +160,7 @@ def render_answer_form(
     title: str,
     newsletter_id: int,
     issue: int,
+    curr_issue: int,
     HttpResponse
 ) -> None:
     """
@@ -206,6 +235,8 @@ def render_answer_form(
             raise HttpResponse(500, f"question type {q_type} unknown.")
 
     values = {
+        "HEADER": HEADER,
+        "NAVBAR": make_navbar(issue, curr_issue),
         "QUESTIONS": question_html,
         "TITLE": f"{title} {issue}"
     }
@@ -220,6 +251,7 @@ def render_newsletter(
     title: str,
     newsletter_id: int,
     issue: int,
+    curr_issue: int,
     HttpResponse
 ) -> None:
     """
@@ -250,9 +282,6 @@ def render_newsletter(
 
     responses = get_responses(newsletter_id, issue)
 
-    values = {
-        "TITLE": f"{title} {issue}"
-    }
     n_html = ""
     for question in responses:
         creator, q_text, q_responses = question
@@ -294,7 +323,13 @@ def render_newsletter(
         n_html += format_html(
             question_board, q_values
         )
-    values["NEWSLETTER"] = n_html
+
+    values = {
+        "HEADER": HEADER,
+        "NAVBAR": make_navbar(issue, curr_issue),
+        "TITLE": f"{title} {issue}",
+        "NEWSLETTER": n_html
+    }
 
     print("Content-Type: text/html")
     print("Status: 200\n")
@@ -349,8 +384,8 @@ def render(
     finally:
         issue_file.close()
 
-    if issue:
-        if issue > curr_issue:
+    if issue is not None:
+        if issue > curr_issue and issue < 0:
             raise HttpResponse(404, f"Issue {issue} does not exist for {token['newsletter_title']}")
         if issue < curr_issue:
             logger.debug(f"Rendering historical issue no. {issue}")
@@ -358,7 +393,7 @@ def render(
             render_newsletter(
                 token["newsletter_title"],
                 token["newsletter_id"],
-                issue,
+                issue, curr_issue,
                 HttpResponse
             )
             return
@@ -369,6 +404,13 @@ def render(
     if day == 7: week += 1
 
     logger.debug(f"Issue: {curr_issue}, Config folder: {token['newsletter_folder']}, stage: {week % 4}")
+
+    params = [
+        token['newsletter_title'],
+        token['newsletter_id'],
+        curr_issue, curr_issue,
+        HttpResponse
+    ]
 
     if week % 4 in [1,2]:
         default_questions, _ = get_questions(
@@ -385,23 +427,11 @@ def render(
             if not success:
                 logger.warning("Failed to add default questions. Will attempt next time")
 
-        render_question_form(
-            token['newsletter_title'],
-            token['newsletter_id'],
-            curr_issue, HttpResponse
-        )
+        render_question_form(*params)
     elif week % 4 == 3:
-        render_answer_form(
-            token['newsletter_title'],
-            token['newsletter_id'],
-            curr_issue, HttpResponse
-        )
+        render_answer_form(*params)
     else:
-        render_newsletter(
-            token['newsletter_title'],
-            token['newsletter_id'],
-            curr_issue, HttpResponse
-        )
+        render_newsletter(*params)
 
 
 def answer(
