@@ -71,10 +71,29 @@ def authenticate(
     return False, -1, "", ""
 
 
+def make_navbar(
+    issue: int,
+    curr_issue: int
+) -> str:
+    p_valid = "disable" if issue >= curr_issue else ""
+    n_valid = "disable" if issue <= 0 else ""
+
+    return format_html(
+        NAVBAR,
+        {
+            "PREV" : str(issue - 1),
+            "P_VALID": p_valid,
+            "NEXT" : str(issue + 1),
+            "N_VALID": n_valid
+        }
+     )
+
+
 def render_question_form(
     title: str,
     newsletter_id: int,
     issue: int,
+    curr_issue: int,
     HttpResponse
 ) -> None:
     """
@@ -120,7 +139,7 @@ def render_question_form(
 
     values = {
         "HEADER": HEADER,
-        "NAVBAR": NAVBAR,
+        "NAVBAR": make_navbar(issue, curr_issue),
         "TITLE": f"{title} {issue}",
         "SUBMITTED": format_html(
             submitted_questions, {
@@ -139,6 +158,7 @@ def render_answer_form(
     title: str,
     newsletter_id: int,
     issue: int,
+    curr_issue: int,
     HttpResponse
 ) -> None:
     """
@@ -214,7 +234,7 @@ def render_answer_form(
 
     values = {
         "HEADER": HEADER,
-        "NAVBAR": NAVBAR,
+        "NAVBAR": make_navbar(issue, curr_issue),
         "QUESTIONS": question_html,
         "TITLE": f"{title} {issue}"
     }
@@ -229,6 +249,7 @@ def render_newsletter(
     title: str,
     newsletter_id: int,
     issue: int,
+    curr_issue: int,
     HttpResponse
 ) -> None:
     """
@@ -300,9 +321,10 @@ def render_newsletter(
         n_html += format_html(
             question_board, q_values
         )
+
     values = {
         "HEADER": HEADER,
-        "NAVBAR": NAVBAR,
+        "NAVBAR": make_navbar(issue, curr_issue),
         "TITLE": f"{title} {issue}",
         "NEWSLETTER": n_html
     }
@@ -369,7 +391,7 @@ def render(
             render_newsletter(
                 token["newsletter_title"],
                 token["newsletter_id"],
-                issue,
+                issue, curr_issue,
                 HttpResponse
             )
             return
@@ -399,19 +421,22 @@ def render(
         render_question_form(
             token['newsletter_title'],
             token['newsletter_id'],
-            curr_issue, HttpResponse
+            curr_issue, curr_issue,
+            HttpResponse
         )
     elif week % 4 == 3:
         render_answer_form(
             token['newsletter_title'],
             token['newsletter_id'],
-            curr_issue, HttpResponse
+            curr_issue, curr_issue,
+            HttpResponse
         )
     else:
         render_newsletter(
             token['newsletter_title'],
             token['newsletter_id'],
-            curr_issue, HttpResponse
+            curr_issue, curr_issue,
+            HttpResponse
         )
 
 

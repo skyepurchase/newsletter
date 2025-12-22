@@ -172,6 +172,21 @@ nav .menu-btn {
     display: none;
 }
 
+.newsletter-nav {
+    display: flex;
+    justify-content: space-around;
+    margin-left: 8rem;
+}
+
+.newsletter-nav a {
+    margin: 0 1rem;
+}
+
+.newsletter-nav .disable {
+    pointer-events: none;
+    color: #44475a;
+}
+
 /*}}}*/
 
 /* newsletter {{{ */
