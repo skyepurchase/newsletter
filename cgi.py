@@ -382,8 +382,8 @@ def render(
     finally:
         issue_file.close()
 
-    if issue:
-        if issue > curr_issue:
+    if issue is not None:
+        if issue > curr_issue and issue < 0:
             raise HttpResponse(404, f"Issue {issue} does not exist for {token['newsletter_title']}")
         if issue < curr_issue:
             logger.debug(f"Rendering historical issue no. {issue}")
