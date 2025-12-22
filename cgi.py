@@ -75,8 +75,9 @@ def make_navbar(
     issue: int,
     curr_issue: int
 ) -> str:
-    p_valid = "disable" if issue >= curr_issue else ""
-    n_valid = "disable" if issue <= 0 else ""
+    p_valid = "disable" if issue <= 0 else ""
+    n_valid = "disable" if issue >= curr_issue else ""
+    c_valid = "disable" if issue == curr_issue else ""
 
     return format_html(
         NAVBAR,
@@ -84,7 +85,8 @@ def make_navbar(
             "PREV" : str(issue - 1),
             "P_VALID": p_valid,
             "NEXT" : str(issue + 1),
-            "N_VALID": n_valid
+            "N_VALID": n_valid,
+            "C_VALID": c_valid
         }
      )
 
@@ -403,6 +405,13 @@ def render(
 
     logger.debug(f"Issue: {curr_issue}, Config folder: {token['newsletter_folder']}, stage: {week % 4}")
 
+    params = [
+        token['newsletter_title'],
+        token['newsletter_id'],
+        curr_issue, curr_issue,
+        HttpResponse
+    ]
+
     if week % 4 in [1,2]:
         default_questions, _ = get_questions(
             token['newsletter_id'], curr_issue
@@ -418,26 +427,11 @@ def render(
             if not success:
                 logger.warning("Failed to add default questions. Will attempt next time")
 
-        render_question_form(
-            token['newsletter_title'],
-            token['newsletter_id'],
-            curr_issue, curr_issue,
-            HttpResponse
-        )
+        render_question_form(*params)
     elif week % 4 == 3:
-        render_answer_form(
-            token['newsletter_title'],
-            token['newsletter_id'],
-            curr_issue, curr_issue,
-            HttpResponse
-        )
+        render_answer_form(*params)
     else:
-        render_newsletter(
-            token['newsletter_title'],
-            token['newsletter_id'],
-            curr_issue, curr_issue,
-            HttpResponse
-        )
+        render_newsletter(*params)
 
 
 def answer(
