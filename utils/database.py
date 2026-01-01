@@ -14,13 +14,13 @@ formatter = logging.Formatter(
     datefmt=LOG_TIME_FORMAT
 )
 logger = logging.getLogger(__name__)
-handler = logging.FileHandler(f"{os.environ['HOME']}/logs/mysql")
+handler = logging.FileHandler(f"/home/atp45/logs/mysql")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
 
-with open(f"{os.environ['HOME']}/.secrets.json", "r") as f:
+with open(f"/home/atp45/.secrets.json", "r") as f:
     SECRETS = json.loads(f.read())
 
 
