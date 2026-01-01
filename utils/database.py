@@ -1,4 +1,4 @@
-import json, traceback, logging
+import json, traceback, logging, os
 
 import mysql.connector
 from mysql.connector.errors import Error, IntegrityError, ProgrammingError
@@ -9,7 +9,7 @@ from .type_hints import Response
 from .constants import LOG_TIME_FORMAT
 
 
-with open("/home/atp45/.secrets.json", "r") as f:
+with open(f"{os.environ['HOME']}/.secrets.json", "r") as f:
     SECRETS = json.loads(f.read())
 
 
@@ -18,7 +18,7 @@ formatter = logging.Formatter(
     datefmt=LOG_TIME_FORMAT
 )
 logger = logging.getLogger(__name__)
-handler = logging.FileHandler("/home/atp45/logs/mysql")
+handler = logging.FileHandler(f"{os.environ['HOME']}/logs/mysql")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)

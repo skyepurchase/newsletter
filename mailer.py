@@ -8,7 +8,7 @@ from utils.type_hints import NewsletterConfig
 
 EDITOR = os.environ.get('EDITOR', 'vim')
 
-with open("/home/atp45/.secrets.json", "r") as f:
+with open(f"{os.environ['HOME']}.secrets.json", "r") as f:
     SECRETS = json.loads(f.read())
 
 

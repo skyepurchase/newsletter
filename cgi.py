@@ -31,7 +31,7 @@ formatter = logging.Formatter(
     datefmt=LOG_TIME_FORMAT
 )
 logger = logging.getLogger(__name__)
-handler = logging.FileHandler("/home/atp45/logs/newsletter")
+handler = logging.FileHandler(f"{os.environ['HOME']}/logs/newsletter")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
@@ -305,7 +305,7 @@ def render_newsletter(
             else:
                 filename = img_path.split("/")[-1]
                 public_path = os.path.join(
-                    "/home/atp45/public_html/images",
+                    f"{os.environ['HOME']}/public_html/images",
                     filename
                 )
                 shutil.copy(img_path, public_path)
@@ -356,7 +356,7 @@ def render(
     """
     config_file = open(
         os.path.join(
-            "/home/atp45",
+            f"{os.environ['HOME']}",
             token["newsletter_folder"],
             "config.yaml"
         ), "r"
@@ -371,7 +371,7 @@ def render(
 
     issue_file = open(
         os.path.join(
-            "/home/atp45",
+            f"{os.environ['HOME']}",
             token["newsletter_folder"],
             "issue"
         ), "r"
@@ -398,10 +398,7 @@ def render(
             )
             return
 
-    # Hack a Sunday start
-    week = NOW.isocalendar()[1]
-    day = NOW.isocalendar()[2]
-    if day == 7: week += 1
+    week = int(NOW.strftime("%U"))
 
     logger.debug(f"Issue: {curr_issue}, Config folder: {token['newsletter_folder']}, stage: {week % 4}")
 
@@ -506,7 +503,11 @@ The suitable error to throw HTTP Responses
     # Load config
     try:
         with open(
-            os.path.join("/home/atp45", token["newsletter_folder"], "config.yaml"), "r"
+            os.path.join(
+                f"{os.environ['HOME']}",
+                token["newsletter_folder"],
+                "config.yaml"
+            ), "r"
         ) as f:
             config = yaml.safe_load(f)
             issue = config["issue"]
