@@ -31,7 +31,7 @@ formatter = logging.Formatter(
     datefmt=LOG_TIME_FORMAT
 )
 logger = logging.getLogger(__name__)
-handler = logging.FileHandler(f"{os.environ['HOME']}/logs/newsletter")
+handler = logging.FileHandler(f"/home/atp45/logs/newsletter")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
@@ -305,7 +305,7 @@ def render_newsletter(
             else:
                 filename = img_path.split("/")[-1]
                 public_path = os.path.join(
-                    f"{os.environ['HOME']}/public_html/images",
+                    f"/home/atp45/public_html/images",
                     filename
                 )
                 shutil.copy(img_path, public_path)
@@ -356,7 +356,7 @@ def render(
     """
     config_file = open(
         os.path.join(
-            f"{os.environ['HOME']}",
+            f"/home/atp45",
             token["newsletter_folder"],
             "config.yaml"
         ), "r"
@@ -371,7 +371,7 @@ def render(
 
     issue_file = open(
         os.path.join(
-            f"{os.environ['HOME']}",
+            f"/home/atp45",
             token["newsletter_folder"],
             "issue"
         ), "r"
@@ -504,7 +504,7 @@ The suitable error to throw HTTP Responses
     try:
         with open(
             os.path.join(
-                f"{os.environ['HOME']}",
+                f"/home/atp45",
                 token["newsletter_folder"],
                 "config.yaml"
             ), "r"
