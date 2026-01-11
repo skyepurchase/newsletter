@@ -1,9 +1,8 @@
-import os, shutil, logging, traceback
+import os, shutil, logging
 
 from datetime import datetime
 
-import yaml
-
+from .utils.helpers import get_config_and_issue
 from .utils.constants import LOG_TIME_FORMAT
 from .utils.html import verify, format_html
 from .utils.database import (
@@ -30,8 +29,8 @@ formatter = logging.Formatter(
     '[%(asctime)s %(levelname)s] %(message)s',
     datefmt=LOG_TIME_FORMAT
 )
-logger = logging.getLogger(__name__)
-handler = logging.FileHandler(f"/home/atp45/logs/newsletter")
+logger = logging.getLogger('newsletter')
+handler = logging.FileHandler("/home/atp45/logs/newsletter")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
@@ -305,7 +304,7 @@ def render_newsletter(
             else:
                 filename = img_path.split("/")[-1]
                 public_path = os.path.join(
-                    f"/home/atp45/public_html/images",
+                    "/home/atp45/public_html/images",
                     filename
                 )
                 shutil.copy(img_path, public_path)
@@ -354,35 +353,11 @@ def render(
     HttpResponse : Error
         The suitable error to throw HTTP Responses
     """
-    config_file = open(
-        os.path.join(
-            f"/home/atp45",
-            token["newsletter_folder"],
-            "config.yaml"
-        ), "r"
-    )
     try:
-        config = yaml.safe_load(config_file)
-    except yaml.YAMLError:
-        logger.debug(traceback.format_exc())
-        raise HttpResponse(500, "Error loading YAML configuration")
-    finally:
-        config_file.close()
-
-    issue_file = open(
-        os.path.join(
-            f"/home/atp45",
-            token["newsletter_folder"],
-            "issue"
-        ), "r"
-    )
-    try:
-        curr_issue = int(issue_file.read())
-    except ValueError:
-        logger.debug(traceback.format_exc())
-        raise HttpResponse(500, "Error loading issue file")
-    finally:
-        issue_file.close()
+        config, curr_issue = get_config_and_issue(token, HttpResponse)
+    except HttpResponse as response:
+        # TODO: this is inelegant and can be done better
+        raise response
 
     if issue is not None:
         if issue > curr_issue and issue < 0:
@@ -500,20 +475,11 @@ def question_submit(
     HttpResponse : Error
 The suitable error to throw HTTP Responses
     """
-    # Load config
     try:
-        with open(
-            os.path.join(
-                f"/home/atp45",
-                token["newsletter_folder"],
-                "config.yaml"
-            ), "r"
-        ) as f:
-            config = yaml.safe_load(f)
-            issue = config["issue"]
-    except yaml.YAMLError:
-        logger.debug(traceback.format_exc())
-        raise HttpResponse(500, "Error loading YAML configuration")
+        _, issue = get_config_and_issue(token, HttpResponse)
+    except HttpResponse as response:
+        # TODO: this is inelegant and can be done better
+        raise response
 
     name = parameters["name"]
     question = parameters["question"]
