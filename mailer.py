@@ -1,7 +1,8 @@
-import os, yaml, json, sys, logging
+import os, json, sys, logging
 
 from utils.constants import LOG_TIME_FORMAT
 from utils.email import generate_email_request, send_email
+from utils.helpers import get_config_and_issue
 from utils.type_hints import NewsletterConfig
 
 
@@ -58,26 +59,9 @@ if __name__=='__main__':
 
     args = args.parse_args()
 
-    try:
-        with open(
-            os.path.join(args.config_dir, 'config.yaml'), 'r'
-        ) as config_file:
-            config = yaml.safe_load(config_file)
-    except OSError:
-        logger.critical(f"An error occurred opening config file {args.config_dir}")
-        sys.exit(1)
-    except yaml.YAMLError:
-        logger.critical("An error occurred opening the YAML configuration")
-        sys.exit(1)
-
-    try:
-        with open(
-            os.path.join(args.config_dir, 'issue'), 'r'
-        ) as issue_file:
-            issue = int(issue_file.read())
-    except OSError:
-        logger.critical(f"An error occured opening issue file {args.config_dir}/issue")
-        sys.exit(1)
+    success, config, issue = get_config_and_issue(args.config_dir)
+    if not success:
+        logger.critical(f"An error occurred loading {args.config_dir}")
 
     new_config = main(NewsletterConfig(
         isQuestion=args.question,

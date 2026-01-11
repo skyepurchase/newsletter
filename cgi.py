@@ -353,11 +353,9 @@ def render(
     HttpResponse : Error
         The suitable error to throw HTTP Responses
     """
-    try:
-        config, curr_issue = get_config_and_issue(token, HttpResponse)
-    except HttpResponse as response:
-        # TODO: this is inelegant and can be done better
-        raise response
+    success, config, curr_issue = get_config_and_issue(token["newsletter_folder"])
+    if not success:
+        raise HttpResponse(500, "Failed to load config")
 
     if issue is not None:
         if issue > curr_issue and issue < 0:
@@ -475,11 +473,9 @@ def question_submit(
     HttpResponse : Error
 The suitable error to throw HTTP Responses
     """
-    try:
-        _, issue = get_config_and_issue(token, HttpResponse)
-    except HttpResponse as response:
-        # TODO: this is inelegant and can be done better
-        raise response
+    success, _, issue = get_config_and_issue(token["newsletter_folder"])
+    if not success:
+        raise HttpResponse(500, "Failed to load config")
 
     name = parameters["name"]
     question = parameters["question"]
