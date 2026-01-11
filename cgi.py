@@ -4,9 +4,8 @@ from datetime import datetime
 
 from .utils.helpers import get_config_and_issue
 from .utils.constants import LOG_TIME_FORMAT
-from .utils.html import verify, format_html
+from .utils.html import format_html, make_navbar
 from .utils.database import (
-    get_newsletters,
     get_questions,
     get_responses,
     insert_answer,
@@ -14,15 +13,13 @@ from .utils.database import (
     insert_question
 )
 
-from typing import DefaultDict, Optional, Tuple
+from typing import DefaultDict, Optional
 
 DIR = os.path.dirname(__file__)
 NOW = datetime.now()
 
 HEADER = open(
     os.path.join(DIR, "templates/header.html")).read()
-NAVBAR = open(
-    os.path.join(DIR, "templates/navbar.html")).read()
 
 
 formatter = logging.Formatter(
@@ -34,60 +31,6 @@ handler = logging.FileHandler("/home/atp45/logs/newsletter")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
-
-
-def authenticate(
-    passcode: str
-) -> Tuple[bool, int, str, str]:
-    """
-    Check whether a user is verified and then return the relevant newsletter details.
-
-    Parameters
-    ----------
-    passcode : str
-        The passcode to test
-
-    Returns
-    -------
-    verified : bool
-        Whether the user is verified
-    newsletter_id : int
-        The id of the authenticated newsletter
-    title : str
-        The title of the authenticated newsletter
-    folder : str
-        The folder storing metadata for the newsletter
-    """
-    newsletters = get_newsletters()
-
-    for entry in newsletters:
-        n_id, n_title, n_hash, n_folder = entry
-        assert isinstance(n_hash, bytes), "SQL returned a hash that was not in bytes."
-
-        if verify(passcode, n_hash):
-            return True, n_id, n_title, n_folder
-
-    return False, -1, "", ""
-
-
-def make_navbar(
-    issue: int,
-    curr_issue: int
-) -> str:
-    p_valid = "disable" if issue <= 0 else ""
-    n_valid = "disable" if issue >= curr_issue else ""
-    c_valid = "disable" if issue == curr_issue else ""
-
-    return format_html(
-        NAVBAR,
-        {
-            "PREV" : str(issue - 1),
-            "P_VALID": p_valid,
-            "NEXT" : str(issue + 1),
-            "N_VALID": n_valid,
-            "C_VALID": c_valid
-        }
-     )
 
 
 def render_question_form(
