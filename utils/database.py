@@ -1,4 +1,4 @@
-import json, traceback, logging, os
+import json, traceback, logging
 
 import mysql.connector
 from mysql.connector.errors import Error, IntegrityError, ProgrammingError
