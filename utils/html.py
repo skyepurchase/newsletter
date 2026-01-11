@@ -10,7 +10,7 @@ HASH_ALGO = 'sha256'
 
 DIR = os.path.dirname(__file__)
 NAVBAR = open(
-    os.path.join(DIR, "templates/navbar.html")).read()
+    os.path.join(DIR, "../templates/navbar.html")).read()
 
 
 def format_html(

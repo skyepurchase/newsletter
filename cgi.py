@@ -2,7 +2,7 @@ import os, shutil, logging
 
 from datetime import datetime
 
-from .utils.helpers import get_config_and_issue
+from .utils.helpers import load_config
 from .utils.constants import LOG_TIME_FORMAT
 from .utils.html import format_html, make_navbar
 from .utils.database import (
@@ -14,6 +14,8 @@ from .utils.database import (
 )
 
 from typing import DefaultDict, Optional
+from .utils.type_hints import NewsletterToken
+
 
 DIR = os.path.dirname(__file__)
 NOW = datetime.now()
@@ -280,7 +282,7 @@ def render_newsletter(
 
 
 def render(
-    token: dict,
+    token: NewsletterToken,
     issue: Optional[int],
     HttpResponse # TODO: type hint this properly
 ) -> None:
@@ -296,45 +298,44 @@ def render(
     HttpResponse : Error
         The suitable error to throw HTTP Responses
     """
-    success, config, curr_issue = get_config_and_issue(token["newsletter_folder"])
+    success, config = load_config(token.folder)
     if not success:
         raise HttpResponse(500, "Failed to load config")
 
     if issue is not None:
-        if issue > curr_issue and issue < 0:
-            raise HttpResponse(404, f"Issue {issue} does not exist for {token['newsletter_title']}")
-        if issue < curr_issue:
+        if issue > config.issue and issue < 0:
+            raise HttpResponse(404, f"Issue {issue} does not exist for {token.title}")
+        if issue < config.issue:
             logger.debug(f"Rendering historical issue no. {issue}")
             # An old issue so just render it
             render_newsletter(
-                token["newsletter_title"],
-                token["newsletter_id"],
-                issue, curr_issue,
+                token.title,
+                token.id,
+                issue, config.issue,
                 HttpResponse
             )
             return
 
     week = int(NOW.strftime("%U"))
 
-    logger.debug(f"Issue: {curr_issue}, Config folder: {token['newsletter_folder']}, stage: {week % 4}")
+    logger.debug(f"Issue: {config.issue}, Config folder: {token.folder}, stage: {week % 4}")
 
     params = [
-        token['newsletter_title'],
-        token['newsletter_id'],
-        curr_issue, curr_issue,
+        token.title,
+        token.id,
+        config.issue, config.issue,
         HttpResponse
     ]
 
     if week % 4 in [1,2]:
         default_questions, _ = get_questions(
-            token['newsletter_id'], curr_issue
+            token.id, config.issue
         )
 
         if len(default_questions) == 0:
             logger.info("Inserting default questions")
             success = insert_default_questions(
-                token['newsletter_id'],
-                curr_issue, config["defaults"]
+                token.id, config.issue, config.defaults
             )
 
             if not success:
@@ -400,7 +401,7 @@ The suitable error to throw HTTP Responses
 
 
 def question_submit(
-    token: dict,
+    token: NewsletterToken,
     parameters: dict,
     HttpResponse
 ):
@@ -416,7 +417,7 @@ def question_submit(
     HttpResponse : Error
 The suitable error to throw HTTP Responses
     """
-    success, _, issue = get_config_and_issue(token["newsletter_folder"])
+    success, config = load_config(token.folder)
     if not success:
         raise HttpResponse(500, "Failed to load config")
 
@@ -427,7 +428,7 @@ The suitable error to throw HTTP Responses
         raise HttpResponse(422, "No name or question provided")
 
     created, error = insert_question(
-        token["newsletter_id"], issue, name, question
+        token.id, config.issue, name, question
     )
     if created:
         raise HttpResponse(201, "Thank you for submitting you question :).")

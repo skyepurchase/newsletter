@@ -1,13 +1,15 @@
 import os, yaml, traceback, logging
 
 from typing import Tuple
+from .type_hints import EmptyConfig, NewsletterConfig
 
 
 logger = logging.getLogger('newsletter')
 
 
-def get_config_and_issue(
-        newsletter_folder: str) -> Tuple[bool, dict, int]:
+def load_config(
+        newsletter_folder: str
+) -> Tuple[bool, NewsletterConfig]:
     """
     Given JWT token parse the relevant config and issue file.
 
@@ -20,11 +22,10 @@ def get_config_and_issue(
     -------
     success : bool
         Whether the config file was successfully loaded
-    config : dict
+    config : NewsletterConfig
         The configuration for this newsletter
-    curr_issue : int
-        The current issue
     """
+    logger.debug(f"Trying to load config from {newsletter_folder}")
     try:
         with open(
             os.path.join(
@@ -36,10 +37,10 @@ def get_config_and_issue(
             config = yaml.safe_load(config_file)
     except OSError:
         logger.critical(f"Failed to load {newsletter_folder}")
-        return False, {}, -1
+        return False, EmptyConfig
     except yaml.YAMLError:
         logger.critical(f"Failed to parse {newsletter_folder}")
-        return False, {}, -1
+        return False, EmptyConfig
 
     try:
         with open(
@@ -49,12 +50,19 @@ def get_config_and_issue(
                 "issue"
             ), "r"
         ) as issue_file:
-            curr_issue = int(issue_file.read())
+            issue = int(issue_file.read())
     except OSError:
         logger.critical(f"Failed to load {newsletter_folder} issue file")
-        return False, {}, -1
+        return False, EmptyConfig
     except ValueError:
         logger.debug(traceback.format_exc())
-        return False, {}, -1
+        return False, EmptyConfig
 
-    return True, config, curr_issue
+    return True, NewsletterConfig(
+        name=config["name"],
+        email=config["email"],
+        folder=config["folder"],
+        link=config["link"],
+        issue=issue,
+        defaults=config["defaults"]
+    )

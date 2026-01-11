@@ -3,13 +3,13 @@ import smtplib, ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-from .type_hints import NewsletterConfig
+from .type_hints import MailerConfig
 
 
 PORT = 465
 
 
-def generate_email_request(config: NewsletterConfig):
+def generate_email_request(config: MailerConfig):
     request = (
         "submit questions" if config.isQuestion
         else "submit answers" if config.isAnswer

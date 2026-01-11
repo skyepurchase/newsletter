@@ -2,8 +2,8 @@ import os, json, sys, logging
 
 from utils.constants import LOG_TIME_FORMAT
 from utils.email import generate_email_request, send_email
-from utils.helpers import get_config_and_issue
-from utils.type_hints import NewsletterConfig
+from utils.helpers import load_config
+from utils.type_hints import MailerConfig
 
 
 EDITOR = os.environ.get('EDITOR', 'vim')
@@ -15,7 +15,7 @@ with open(f"/home/atp45/.secrets.json", "r") as f:
 logger = logging.getLogger("mailer")
 
 
-def main(config: NewsletterConfig) -> NewsletterConfig:
+def main(config: MailerConfig) -> MailerConfig:
     formatter = logging.Formatter(
         f'[%(asctime)s %(levelname)s] {config.name}: %(message)s',
         datefmt=LOG_TIME_FORMAT
@@ -59,22 +59,22 @@ if __name__=='__main__':
 
     args = args.parse_args()
 
-    success, config, issue = get_config_and_issue(args.config_dir)
+    success, config = load_config(args.config_dir)
     if not success:
         logger.critical(f"An error occurred loading {args.config_dir}")
 
-    new_config = main(NewsletterConfig(
+    new_config = main(MailerConfig(
         isQuestion=args.question,
         isAnswer=args.answer,
         isSend=not(args.answer or args.question),
         isManual=args.manual,
         password=SECRETS["MAIL_PASS"],
         debug=args.debug,
-        name=config["name"],
-        email=config["email"],
-        issue=issue,
-        addresses=[config["email"]],
-        folder=config["folder"],
-        link=config["link"],
+        name=config.name,
+        email=config.email,
+        issue=config.issue,
+        addresses=[config.email],
+        folder=config.folder,
+        link=config.link,
         text="",
     ))
