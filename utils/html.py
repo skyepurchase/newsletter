@@ -1,9 +1,5 @@
 import os, hashlib, bleach
 
-from .database import get_newsletters
-
-from typing import Tuple
-
 
 ITERATIONS = 100000
 HASH_ALGO = 'sha256'
@@ -79,37 +75,3 @@ def verify(passcode: str, hash: bytes):
         return True
 
     return False
-
-
-def authenticate(
-    passcode: str
-) -> Tuple[bool, int, str, str]:
-    """
-    Check whether a user is verified and then return the relevant newsletter details.
-
-    Parameters
-    ----------
-    passcode : str
-        The passcode to test
-
-    Returns
-    -------
-    verified : bool
-        Whether the user is verified
-    newsletter_id : int
-        The id of the authenticated newsletter
-    title : str
-        The title of the authenticated newsletter
-    folder : str
-        The folder storing metadata for the newsletter
-    """
-    newsletters = get_newsletters()
-
-    for entry in newsletters:
-        n_id, n_title, n_hash, n_folder = entry
-        assert isinstance(n_hash, bytes), "SQL returned a hash that was not in bytes."
-
-        if verify(passcode, n_hash):
-            return True, n_id, n_title, n_folder
-
-    return False, -1, "", ""
