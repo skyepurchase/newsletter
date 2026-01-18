@@ -1,0 +1,10 @@
+[project]
+name = "newsletter"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "mysql-connector-python>=9.0.0",
+    "neovim>=0.3.1",
+]
