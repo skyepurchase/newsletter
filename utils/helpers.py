@@ -4,11 +4,9 @@ from typing import Tuple
 from .type_hints import EmptyConfig, NewsletterConfig
 
 
-logger = logging.getLogger('newsletter')
-
-
 def load_config(
-        newsletter_folder: str
+    newsletter_folder: str,
+    logger: logging.Logger
 ) -> Tuple[bool, NewsletterConfig]:
     """
     Given JWT token parse the relevant config and issue file.
@@ -25,7 +23,6 @@ def load_config(
     config : NewsletterConfig
         The configuration for this newsletter
     """
-    logger.debug(f"Trying to load config from {newsletter_folder}")
     try:
         with open(
             os.path.join(
