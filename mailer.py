@@ -1,4 +1,4 @@
-import os, json, sys, logging
+import os, json, sys, logging, traceback
 
 from utils.constants import LOG_TIME_FORMAT
 from utils.email import generate_email_request, send_email
@@ -12,7 +12,15 @@ with open(f"/home/atp45/.secrets.json", "r") as f:
     SECRETS = json.loads(f.read())
 
 
-logger = logging.getLogger("mailer")
+LOGGER = logging.getLogger("mailer")
+formatter = logging.Formatter(
+    f'[%(asctime)s %(levelname)s] GENERIC: %(message)s',
+    datefmt=LOG_TIME_FORMAT
+)
+handler = logging.FileHandler("/home/atp45/logs/mailer")
+handler.setFormatter(formatter)
+LOGGER.addHandler(handler)
+LOGGER.setLevel(logging.DEBUG)
 
 
 def main(config: MailerConfig) -> MailerConfig:
@@ -20,26 +28,33 @@ def main(config: MailerConfig) -> MailerConfig:
         f'[%(asctime)s %(levelname)s] {config.name}: %(message)s',
         datefmt=LOG_TIME_FORMAT
     )
-    handler = logging.FileHandler(f"{config.folder}/log")
+    handler = logging.FileHandler("/home/atp45/logs/mailer")
     handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(logging.DEBUG)
+
+    for hdlr in LOGGER.handlers[:]:
+        LOGGER.removeHandler(hdlr)
+    LOGGER.addHandler(handler)
 
     if config.isQuestion:
-        logger.info(f"Question request")
+        LOGGER.info(f"Question request")
         config.text = "Time to submit your questions!"
     elif config.isAnswer:
-        logger.info(f"Answer request")
+        LOGGER.info(f"Answer request")
         config.text = "Time to submit your responses!"
     elif config.isSend:
-        logger.info("Publishing")
+        LOGGER.info("Publishing")
         config.text = "Hope you have all had a wonderful month!"
     else:
-        logger.warning(f"Illegal config file submitted!")
+        LOGGER.warning(f"Illegal config file submitted!")
         sys.exit(2)
 
-    with open(f'{config.folder}/emails.txt', "r") as addr_file:
-        config.addresses = [addr.replace("\n", "") for addr in addr_file.readlines()]
+    try:
+        with open(f'{config.folder}/emails.txt', "r") as addr_file:
+            config.addresses = [addr.replace("\n", "") for addr in addr_file.readlines()]
+    except OSError:
+        LOGGER.critical("Failed to load target addresses")
+        LOGGER.debug(traceback.format_exc())
+        exit(1)
 
     email = generate_email_request(config)
     send_email(email, config)
@@ -59,22 +74,22 @@ if __name__=='__main__':
 
     args = args.parse_args()
 
-    success, config = load_config(args.config_dir)
-    if not success:
-        logger.critical(f"An error occurred loading {args.config_dir}")
-
-    new_config = main(MailerConfig(
-        isQuestion=args.question,
-        isAnswer=args.answer,
-        isSend=not(args.answer or args.question),
-        isManual=args.manual,
-        password=SECRETS["MAIL_PASS"],
-        debug=args.debug,
-        name=config.name,
-        email=config.email,
-        issue=config.issue,
-        addresses=[config.email],
-        folder=config.folder,
-        link=config.link,
-        text="",
-    ))
+    success, config = load_config(args.config_dir, LOGGER)
+    if success:
+        main(MailerConfig(
+            isQuestion=args.question,
+            isAnswer=args.answer,
+            isSend=not(args.answer or args.question),
+            isManual=args.manual,
+            password=SECRETS["MAIL_PASS"],
+            debug=args.debug,
+            name=config.name,
+            email=config.email,
+            issue=config.issue,
+            addresses=[config.email],
+            folder=config.folder,
+            link=config.link,
+            text="",
+        ))
+    else:
+        exit(1)

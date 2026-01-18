@@ -28,11 +28,11 @@ formatter = logging.Formatter(
     '[%(asctime)s %(levelname)s] %(message)s',
     datefmt=LOG_TIME_FORMAT
 )
-logger = logging.getLogger('newsletter')
+LOGGER = logging.getLogger(__name__)
 handler = logging.FileHandler("/home/atp45/logs/newsletter")
 handler.setFormatter(formatter)
-logger.addHandler(handler)
-logger.setLevel(logging.DEBUG)
+LOGGER.addHandler(handler)
+LOGGER.setLevel(logging.DEBUG)
 
 
 def render_question_form(
@@ -56,7 +56,7 @@ def render_question_form(
     HttpResponse
         An Exception object to throw which is handled by the HTTP server
     """
-    logger.info("Rendering question form")
+    LOGGER.info("Rendering question form")
     html = open(os.path.join(
         DIR, "templates/question_form.html"
     )).read()
@@ -123,7 +123,7 @@ def render_answer_form(
     HttpResponse
         An Exception object to throw which is handled by the HTTP server
     """
-    logger.info("Rendering answer form")
+    LOGGER.info("Rendering answer form")
     html = open(os.path.join(
         DIR, "templates/answer.html"
     )).read()
@@ -210,7 +210,7 @@ def render_newsletter(
     HttpResponse
         An Exception object to throw which is handled by the HTTP server
     """
-    logger.info("Rendering published newsletter")
+    LOGGER.info("Rendering published newsletter")
     html = open(os.path.join(
         DIR, "templates/newsletter.html"
     )).read()
@@ -298,7 +298,7 @@ def render(
     HttpResponse : Error
         The suitable error to throw HTTP Responses
     """
-    success, config = load_config(token.folder)
+    success, config = load_config(token.folder, LOGGER)
     if not success:
         raise HttpResponse(500, "Failed to load config")
 
@@ -306,7 +306,7 @@ def render(
         if issue > config.issue and issue < 0:
             raise HttpResponse(404, f"Issue {issue} does not exist for {token.title}")
         if issue < config.issue:
-            logger.debug(f"Rendering historical issue no. {issue}")
+            LOGGER.debug(f"Rendering historical issue no. {issue}")
             # An old issue so just render it
             render_newsletter(
                 token.title,
@@ -318,7 +318,7 @@ def render(
 
     week = int(NOW.strftime("%U"))
 
-    logger.debug(f"Issue: {config.issue}, Config folder: {token.folder}, stage: {week % 4}")
+    LOGGER.debug(f"Issue: {config.issue}, Config folder: {token.folder}, stage: {week % 4}")
 
     params = [
         token.title,
@@ -333,13 +333,13 @@ def render(
         )
 
         if len(default_questions) == 0:
-            logger.info("Inserting default questions")
+            LOGGER.info("Inserting default questions")
             success = insert_default_questions(
                 token.id, config.issue, config.defaults
             )
 
             if not success:
-                logger.warning("Failed to add default questions. Will attempt next time")
+                LOGGER.warning("Failed to add default questions. Will attempt next time")
 
         render_question_form(*params)
     elif week % 4 == 3:
@@ -388,7 +388,7 @@ The suitable error to throw HTTP Responses
             if len(response) > 0:
                 responses[q_id]["text"] = response
         elif q_type=="image":
-            logger.info("Processing images upload")
+            LOGGER.info("Processing images upload")
             responses[q_id]["img"] = response['path']
         else:
             raise HttpResponse(400, "Form keys are not in expected format. Do not mess with the post request!")
@@ -417,7 +417,7 @@ def question_submit(
     HttpResponse : Error
 The suitable error to throw HTTP Responses
     """
-    success, config = load_config(token.folder)
+    success, config = load_config(token.folder, LOGGER)
     if not success:
         raise HttpResponse(500, "Failed to load config")
 
