@@ -1,12 +1,14 @@
-import os, yaml, traceback, logging
+import os
+import yaml
+import traceback
+import logging
 
 from typing import Tuple
 from .type_hints import EmptyConfig, NewsletterConfig
 
 
 def load_config(
-    newsletter_folder: str,
-    logger: logging.Logger
+    newsletter_folder: str, logger: logging.Logger
 ) -> Tuple[bool, NewsletterConfig]:
     """
     Given JWT token parse the relevant config and issue file.
@@ -25,11 +27,7 @@ def load_config(
     """
     try:
         with open(
-            os.path.join(
-                "/home/atp45",
-                newsletter_folder,
-                "config.yaml"
-            ), "r"
+            os.path.join("/home/atp45", newsletter_folder, "config.yaml"), "r"
         ) as config_file:
             config = yaml.safe_load(config_file)
     except OSError:
@@ -41,11 +39,7 @@ def load_config(
 
     try:
         with open(
-            os.path.join(
-                "/home/atp45",
-                newsletter_folder,
-                "issue"
-            ), "r"
+            os.path.join("/home/atp45", newsletter_folder, "issue"), "r"
         ) as issue_file:
             issue = int(issue_file.read())
     except OSError:
@@ -61,5 +55,5 @@ def load_config(
         folder=config["folder"],
         link=config["link"],
         issue=issue,
-        defaults=config["defaults"]
+        defaults=config["defaults"],
     )

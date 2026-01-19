@@ -9,9 +9,11 @@ class NewsletterConfig:
     folder: str
     link: str
     issue: int
-    defaults: List[Tuple[str,str]]
+    defaults: List[Tuple[str, str]]
+
 
 EmptyConfig = NewsletterConfig("", "", "", "", -1, [])
+
 
 @dataclass
 class MailerConfig:
@@ -32,11 +34,13 @@ class MailerConfig:
 
     debug: bool = False
 
+
 @dataclass
 class NewsletterToken:
     title: str
     folder: str
     id: int
+
 
 QuestionResponse = Tuple[str, str, str]
 Response = Tuple[str, int, List[QuestionResponse]]

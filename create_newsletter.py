@@ -1,4 +1,5 @@
-import os, yaml
+import os
+import yaml
 from getpass import getpass
 from argparse import ArgumentParser
 
@@ -6,10 +7,12 @@ from utils.html import hash_passcode
 from utils.database import create_newsletter
 
 
-if __name__=='__main__':
+if __name__ == "__main__":
     parser = ArgumentParser("Create Newsletter")
     parser.add_argument("--title", required=True, help="The title of the newsletter.")
-    parser.add_argument("--email", required=True, help="The email to be used when sending out requests.")
+    parser.add_argument(
+        "--email", required=True, help="The email to be used when sending out requests."
+    )
 
     args = parser.parse_args()
     passcode = getpass("Passcode: ")
@@ -33,8 +36,8 @@ if __name__=='__main__':
         "defaults": [
             ["⛅ One Good Thing", "text"],
             ["👀 Check It Out", "text"],
-            ["📸 Photo Wall", "image"]
-        ]
+            ["📸 Photo Wall", "image"],
+        ],
     }
 
     with open(os.path.join(folder, "config.yaml"), "w") as f:
@@ -42,6 +45,8 @@ if __name__=='__main__':
     open(os.path.join(folder, "emails.txt"), "w").close()
     open(os.path.join(folder, "log"), "w").close()
 
-    print(f"Update {os.path.join(folder, 'emails.txt')} to include the emails of the participants.")
+    print(
+        f"Update {os.path.join(folder, 'emails.txt')} to include the emails of the participants."
+    )
 
     create_newsletter(args.title, pass_hash, folder)

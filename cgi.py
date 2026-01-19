@@ -1,4 +1,6 @@
-import os, shutil, logging
+import os
+import shutil
+import logging
 
 from datetime import datetime
 
@@ -10,7 +12,7 @@ from .utils.database import (
     get_responses,
     insert_answer,
     insert_default_questions,
-    insert_question
+    insert_question,
 )
 
 from typing import DefaultDict, Optional
@@ -20,13 +22,11 @@ from .utils.type_hints import NewsletterToken
 DIR = os.path.dirname(__file__)
 NOW = datetime.now()
 
-HEADER = open(
-    os.path.join(DIR, "templates/header.html")).read()
+HEADER = open(os.path.join(DIR, "templates/header.html")).read()
 
 
 formatter = logging.Formatter(
-    '[%(asctime)s %(levelname)s] %(message)s',
-    datefmt=LOG_TIME_FORMAT
+    "[%(asctime)s %(levelname)s] %(message)s", datefmt=LOG_TIME_FORMAT
 )
 LOGGER = logging.getLogger(__name__)
 handler = logging.FileHandler("/home/atp45/logs/newsletter")
@@ -36,11 +36,7 @@ LOGGER.setLevel(logging.DEBUG)
 
 
 def render_question_form(
-    title: str,
-    newsletter_id: int,
-    issue: int,
-    curr_issue: int,
-    HttpResponse
+    title: str, newsletter_id: int, issue: int, curr_issue: int, HttpResponse
 ) -> None:
     """
     Render the question submission form for the given newsletter.
@@ -57,41 +53,30 @@ def render_question_form(
         An Exception object to throw which is handled by the HTTP server
     """
     LOGGER.info("Rendering question form")
-    html = open(os.path.join(
-        DIR, "templates/question_form.html"
-    )).read()
-    submitted_questions = open(os.path.join(
-        DIR, "templates/submitted_question.html"
-    )).read()
-    question = open(os.path.join(
-        DIR, "templates/response.html"
-    )).read()
+    html = open(os.path.join(DIR, "templates/question_form.html")).read()
+    submitted_questions = open(
+        os.path.join(DIR, "templates/submitted_question.html")
+    ).read()
+    question = open(os.path.join(DIR, "templates/response.html")).read()
 
     submission_html = ""
     _, questions = get_questions(newsletter_id, issue)
     for submission in questions:
         _, name, text = submission
 
-        values = {
-            "NAME": name,
-            "TEXT": text
-        }
+        values = {"NAME": name, "TEXT": text}
 
         submission_html += format_html(
-            question[:], # Copy string
+            question[:],  # Copy string
             values,
-            sanitize=True
+            sanitize=True,
         )
 
     values = {
         "HEADER": HEADER,
         "NAVBAR": make_navbar(issue, curr_issue),
         "TITLE": f"{title} {issue}",
-        "SUBMITTED": format_html(
-            submitted_questions, {
-                "RESPONSES": submission_html
-            }
-        )
+        "SUBMITTED": format_html(submitted_questions, {"RESPONSES": submission_html}),
     }
 
     print("Content-Type: text/html")
@@ -101,11 +86,7 @@ def render_question_form(
 
 
 def render_answer_form(
-    title: str,
-    newsletter_id: int,
-    issue: int,
-    curr_issue: int,
-    HttpResponse
+    title: str, newsletter_id: int, issue: int, curr_issue: int, HttpResponse
 ) -> None:
     """
     Render the response form for the given newsletter.
@@ -124,21 +105,10 @@ def render_answer_form(
         An Exception object to throw which is handled by the HTTP server
     """
     LOGGER.info("Rendering answer form")
-    html = open(os.path.join(
-        DIR, "templates/answer.html"
-    )).read()
-    user_question = open(os.path.join(
-        DIR,
-        "templates/user_question.html"
-    )).read()
-    text_question = open(os.path.join(
-        DIR,
-        "templates/text_question.html"
-    )).read()
-    img_question = open(os.path.join(
-        DIR,
-        "templates/image_question.html"
-    )).read()
+    html = open(os.path.join(DIR, "templates/answer.html")).read()
+    user_question = open(os.path.join(DIR, "templates/user_question.html")).read()
+    text_question = open(os.path.join(DIR, "templates/text_question.html")).read()
+    img_question = open(os.path.join(DIR, "templates/image_question.html")).read()
 
     base_questions, user_questions = get_questions(newsletter_id, issue)
 
@@ -149,31 +119,28 @@ def render_answer_form(
             # People could be silly with this
             "ID": f"question_{q_id}",
             "NAME": q_creator,
-            "QUESTION": q_text
+            "QUESTION": q_text,
         }
         question_html += format_html(
-            user_question[:], # Copy string
+            user_question[:],  # Copy string
             values,
-            sanitize=True
+            sanitize=True,
         )
 
     for question in base_questions:
         q_id, q_text, q_type = question
-        values = {
-            "ID": f"question_{q_id}",
-            "QUESTION": q_text
-        }
+        values = {"ID": f"question_{q_id}", "QUESTION": q_text}
 
-        if q_type=="text":
+        if q_type == "text":
             question_html += format_html(
-                text_question[:], # Copy string
-                values
+                text_question[:],  # Copy string
+                values,
             )
-        elif q_type=="image":
+        elif q_type == "image":
             values["IMG_ID"] = f"image_{q_id}"
             question_html += format_html(
-                img_question[:], # Copy string
-                values
+                img_question[:],  # Copy string
+                values,
             )
         else:
             raise HttpResponse(500, f"question type {q_type} unknown.")
@@ -182,7 +149,7 @@ def render_answer_form(
         "HEADER": HEADER,
         "NAVBAR": make_navbar(issue, curr_issue),
         "QUESTIONS": question_html,
-        "TITLE": f"{title} {issue}"
+        "TITLE": f"{title} {issue}",
     }
 
     print("Content-Type: text/html")
@@ -192,11 +159,7 @@ def render_answer_form(
 
 
 def render_newsletter(
-    title: str,
-    newsletter_id: int,
-    issue: int,
-    curr_issue: int,
-    HttpResponse
+    title: str, newsletter_id: int, issue: int, curr_issue: int, HttpResponse
 ) -> None:
     """
     Render the given newsletter.
@@ -211,68 +174,43 @@ def render_newsletter(
         An Exception object to throw which is handled by the HTTP server
     """
     LOGGER.info("Rendering published newsletter")
-    html = open(os.path.join(
-        DIR, "templates/newsletter.html"
-    )).read()
-    text_response = open(os.path.join(
-        DIR, "templates/response.html"
-    )).read()
-    img_response = open(os.path.join(
-       DIR, "templates/image_response.html"
-    )).read()
-    question_board = open(os.path.join(
-        DIR, "templates/question_board.html"
-    )).read()
+    html = open(os.path.join(DIR, "templates/newsletter.html")).read()
+    text_response = open(os.path.join(DIR, "templates/response.html")).read()
+    img_response = open(os.path.join(DIR, "templates/image_response.html")).read()
+    question_board = open(os.path.join(DIR, "templates/question_board.html")).read()
 
     responses = get_responses(newsletter_id, issue)
 
     n_html = ""
     for question in responses:
         creator, q_text, q_responses = question
-        q_values = {
-            "CREATOR": creator,
-            "QUESTION": q_text
-        }
+        q_values = {"CREATOR": creator, "QUESTION": q_text}
         q_html = ""
         for response in q_responses:
             name, text, img_path = response
 
             if img_path is None:
                 q_html += format_html(
-                    text_response,
-                    {
-                        "NAME": name,
-                        "TEXT": text
-                    },
-                    sanitize=True
+                    text_response, {"NAME": name, "TEXT": text}, sanitize=True
                 )
             else:
                 filename = img_path.split("/")[-1]
-                public_path = os.path.join(
-                    "/home/atp45/public_html/images",
-                    filename
-                )
+                public_path = os.path.join("/home/atp45/public_html/images", filename)
                 shutil.copy(img_path, public_path)
                 q_html += format_html(
                     img_response,
-                    {
-                        "NAME": name,
-                        "SRC": f"/images/{filename}",
-                        "CAPTION": text
-                    }
+                    {"NAME": name, "SRC": f"/images/{filename}", "CAPTION": text},
                 )
 
         q_values["RESPONSES"] = q_html
 
-        n_html += format_html(
-            question_board, q_values
-        )
+        n_html += format_html(question_board, q_values)
 
     values = {
         "HEADER": HEADER,
         "NAVBAR": make_navbar(issue, curr_issue),
         "TITLE": f"{title} {issue}",
-        "NEWSLETTER": n_html
+        "NEWSLETTER": n_html,
     }
 
     print("Content-Type: text/html")
@@ -284,7 +222,7 @@ def render_newsletter(
 def render(
     token: NewsletterToken,
     issue: Optional[int],
-    HttpResponse # TODO: type hint this properly
+    HttpResponse,  # TODO: type hint this properly
 ) -> None:
     """
     Render the relevant form or page based on 'factors'.
@@ -308,38 +246,28 @@ def render(
         if issue < config.issue:
             LOGGER.debug(f"Rendering historical issue no. {issue}")
             # An old issue so just render it
-            render_newsletter(
-                token.title,
-                token.id,
-                issue, config.issue,
-                HttpResponse
-            )
+            render_newsletter(token.title, token.id, issue, config.issue, HttpResponse)
             return
 
     week = int(NOW.strftime("%U"))
 
-    LOGGER.debug(f"Issue: {config.issue}, Config folder: {token.folder}, stage: {week % 4}")
+    LOGGER.debug(
+        f"Issue: {config.issue}, Config folder: {token.folder}, stage: {week % 4}"
+    )
 
-    params = [
-        token.title,
-        token.id,
-        config.issue, config.issue,
-        HttpResponse
-    ]
+    params = [token.title, token.id, config.issue, config.issue, HttpResponse]
 
-    if week % 4 in [1,2]:
-        default_questions, _ = get_questions(
-            token.id, config.issue
-        )
+    if week % 4 in [1, 2]:
+        default_questions, _ = get_questions(token.id, config.issue)
 
         if len(default_questions) == 0:
             LOGGER.info("Inserting default questions")
-            success = insert_default_questions(
-                token.id, config.issue, config.defaults
-            )
+            success = insert_default_questions(token.id, config.issue, config.defaults)
 
             if not success:
-                LOGGER.warning("Failed to add default questions. Will attempt next time")
+                LOGGER.warning(
+                    "Failed to add default questions. Will attempt next time"
+                )
 
         render_question_form(*params)
     elif week % 4 == 3:
@@ -348,50 +276,51 @@ def render(
         render_newsletter(*params)
 
 
-def answer(
-    parameters: dict,
-    HttpResponse
-):
+def answer(parameters: dict, HttpResponse):
     """
-    Add a users answers to the database if they are authorised.
+        Add a users answers to the database if they are authorised.
 
-    Parameters
-    ----------
-    parameters : dict
-        The dict of processed POST parameters
-    HttpResponse : Error
-The suitable error to throw HTTP Responses
+        Parameters
+        ----------
+        parameters : dict
+            The dict of processed POST parameters
+        HttpResponse : Error
+    The suitable error to throw HTTP Responses
     """
-    responses = DefaultDict(
-        lambda: {"img": None, "text": None}
-    )
+    responses = DefaultDict(lambda: {"img": None, "text": None})
     name = ""
 
     for key, response in parameters.items():
-        if key == "unlock": continue
+        if key == "unlock":
+            continue
         if key == "name":
             if response == "":
                 raise HttpResponse(422, "No name provided")
 
-            name=response
+            name = response
             continue
 
         parts = key.split("_")
         if len(parts) != 2:
-            raise HttpResponse(400, "Form keys not in two parts. Do not mess with the post request!")
+            raise HttpResponse(
+                400, "Form keys not in two parts. Do not mess with the post request!"
+            )
 
         q_type = parts[0]
         q_id = parts[1]
 
-        if q_type=="question":
+        if q_type == "question":
             # Don't insert blank answers
             if len(response) > 0:
                 responses[q_id]["text"] = response
-        elif q_type=="image":
+        elif q_type == "image":
             LOGGER.info("Processing images upload")
-            responses[q_id]["img"] = response['path']
+            responses[q_id]["img"] = response["path"]
         else:
-            raise HttpResponse(400, "Form keys are not in expected format. Do not mess with the post request!")
+            raise HttpResponse(
+                400,
+                "Form keys are not in expected format. Do not mess with the post request!",
+            )
 
     created, error = insert_answer(name, responses)
     if created:
@@ -400,22 +329,18 @@ The suitable error to throw HTTP Responses
         raise HttpResponse(500, error)
 
 
-def question_submit(
-    token: NewsletterToken,
-    parameters: dict,
-    HttpResponse
-):
+def question_submit(token: NewsletterToken, parameters: dict, HttpResponse):
     """
-    Add a users questions to the database if they are authorised.
+        Add a users questions to the database if they are authorised.
 
-    Parameters
-    ----------
-    token : dict
-        The dict of processed JSON web token
-    parameters : dict
-        The dict of processed POST parameters
-    HttpResponse : Error
-The suitable error to throw HTTP Responses
+        Parameters
+        ----------
+        token : dict
+            The dict of processed JSON web token
+        parameters : dict
+            The dict of processed POST parameters
+        HttpResponse : Error
+    The suitable error to throw HTTP Responses
     """
     success, config = load_config(token.folder, LOGGER)
     if not success:
@@ -427,9 +352,7 @@ The suitable error to throw HTTP Responses
     if name == "" or question == "":
         raise HttpResponse(422, "No name or question provided")
 
-    created, error = insert_question(
-        token.id, config.issue, name, question
-    )
+    created, error = insert_question(token.id, config.issue, name, question)
     if created:
         raise HttpResponse(201, "Thank you for submitting you question :).")
     else:

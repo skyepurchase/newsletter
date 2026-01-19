@@ -1,4 +1,5 @@
-import smtplib, ssl
+import smtplib
+import ssl
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -11,8 +12,10 @@ PORT = 465
 
 def generate_email_request(config: MailerConfig):
     request = (
-        "submit questions" if config.isQuestion
-        else "submit answers" if config.isAnswer
+        "submit questions"
+        if config.isQuestion
+        else "submit answers"
+        if config.isAnswer
         else "view"
     )
 
@@ -25,11 +28,11 @@ def generate_email_request(config: MailerConfig):
 </head><body>\n"""
 
     if config.isSend:
-        email += f'<h1>{config.name.title()} Issue {config.issue}</h1>\n'
+        email += f"<h1>{config.name.title()} Issue {config.issue}</h1>\n"
     else:
-        email += f'<h1>{request.title()} for Issue {config.issue}</h1>\n'
+        email += f"<h1>{request.title()} for Issue {config.issue}</h1>\n"
 
-    email += f'<p>{config.text}</p>\n'
+    email += f"<p>{config.text}</p>\n"
     email += f"""
 <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; text-align: center; padding: 20px;">
         <a href={config.link} target="_blank" rel="noopener noreferrer" style="background-color: #6272a4; color: white; border: none; padding: 16px 32px; font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; text-transform: none; letter-spacing: 0.5px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-decoration: none; display: inline-block; text-align: center;">{request.title()}</a>
@@ -39,14 +42,15 @@ def generate_email_request(config: MailerConfig):
 
     return email
 
+
 def send_email(body, config):
     message = MIMEMultipart("alternative")
-    message["Subject"] = f'{config.name} Issue {config.issue}'
+    message["Subject"] = f"{config.name} Issue {config.issue}"
 
-    if (config.debug):
+    if config.debug:
         message["To"] = config.email
     else:
-        message["To"] = ', '.join(config.addresses)
+        message["To"] = ", ".join(config.addresses)
 
     message["From"] = config.email
 
@@ -63,10 +67,6 @@ def send_email(body, config):
     with smtplib.SMTP_SSL("smtp.gmail.com", PORT, context=context) as server:
         server.login(config.email, config.password)
         if config.debug:
-            server.sendmail(
-                config.email, config.email, message.as_string()
-            )
+            server.sendmail(config.email, config.email, message.as_string())
         else:
-            server.sendmail(
-                config.email, config.addresses, message.as_string()
-            )
+            server.sendmail(config.email, config.addresses, message.as_string())

@@ -1,4 +1,6 @@
-import json, traceback, logging
+import json
+import traceback
+import logging
 
 import mysql.connector
 from mysql.connector.errors import Error, IntegrityError, ProgrammingError
@@ -10,17 +12,16 @@ from .constants import LOG_TIME_FORMAT
 
 
 formatter = logging.Formatter(
-    '[%(asctime)s %(levelname)s] %(message)s',
-    datefmt=LOG_TIME_FORMAT
+    "[%(asctime)s %(levelname)s] %(message)s", datefmt=LOG_TIME_FORMAT
 )
 logger = logging.getLogger(__name__)
-handler = logging.FileHandler(f"/home/atp45/logs/mysql")
+handler = logging.FileHandler("/home/atp45/logs/mysql")
 handler.setFormatter(formatter)
 logger.addHandler(handler)
 logger.setLevel(logging.DEBUG)
 
 
-with open(f"/home/atp45/.secrets.json", "r") as f:
+with open("/home/atp45/.secrets.json", "r") as f:
     SECRETS = json.loads(f.read())
 
 
@@ -39,7 +40,7 @@ def _get_connection():
         host="localhost",
         user="atp45",
         password=SECRETS["DB_PASS"],
-        database="atp45/newsletter"
+        database="atp45/newsletter",
     )
     conn.autocommit = False
     cursor = conn.cursor()
@@ -72,10 +73,7 @@ def get_newsletters() -> list:
     return result
 
 
-def get_questions(
-    newsletter_id: int,
-    issue: int
-) -> Tuple[list, list]:
+def get_questions(newsletter_id: int, issue: int) -> Tuple[list, list]:
     """
     Get the questions for the specified newsletter and issue.
     This returns both the default and the user submitted questions.
@@ -126,10 +124,7 @@ def get_questions(
     return default, submitted
 
 
-def get_responses(
-    newsletter_id: int,
-    issue: int
-) -> List[Response]:
+def get_responses(newsletter_id: int, issue: int) -> List[Response]:
     conn, cursor = _get_connection()
 
     results = []
@@ -182,7 +177,9 @@ def get_responses(
             results.append(("", question, responses))
 
     except TypeError:
-        logger.error("Failed to retrieve responses due to type error: %s", traceback.format_exc())
+        logger.error(
+            "Failed to retrieve responses due to type error: %s", traceback.format_exc()
+        )
     finally:
         cursor.close()
         conn.close()
@@ -191,10 +188,7 @@ def get_responses(
     return results
 
 
-def insert_answer(
-    name: str,
-    responses: dict
-) -> Tuple[bool, Optional[str]]:
+def insert_answer(name: str, responses: dict) -> Tuple[bool, Optional[str]]:
     """
     Insert the answers for a specific user.
 
@@ -220,8 +214,10 @@ def insert_answer(
             """
             # ON DUPLICATE KEY UPDATE img_path=%s, text=%s;
             values = (
-                q_id, name,
-                data['img'], data['text'],
+                q_id,
+                name,
+                data["img"],
+                data["text"],
                 # data['img'], data['text']
             )
 
@@ -271,9 +267,7 @@ def insert_question(
         INSERT INTO questions (newsletter_id, creator, text, issue)
         VALUES (%s, %s, %s, %s);
         """
-        values = (
-            newsletter_id, name, question, issue
-        )
+        values = (newsletter_id, name, question, issue)
 
         cursor.execute(query, values)
         conn.commit()
@@ -292,9 +286,7 @@ def insert_question(
 
 
 def insert_default_questions(
-    newsletter_id: int,
-    issue: int,
-    questions: List[Tuple[str, str]]
+    newsletter_id: int, issue: int, questions: List[Tuple[str, str]]
 ) -> bool:
     """
     Insert the provided text as default questions.
@@ -319,10 +311,7 @@ def insert_default_questions(
         """
 
         for text, form in questions:
-            values = (
-                newsletter_id, "SYS", text,
-                issue, True, form
-            )
+            values = (newsletter_id, "SYS", text, issue, True, form)
             cursor.execute(query, values)
 
         conn.commit()
@@ -339,11 +328,7 @@ def insert_default_questions(
     return True
 
 
-def create_newsletter(
-    title: str,
-    pass_hash: bytes,
-    folder: str
-) -> bool:
+def create_newsletter(title: str, pass_hash: bytes, folder: str) -> bool:
     """
     Create a new newsletter entry
 
