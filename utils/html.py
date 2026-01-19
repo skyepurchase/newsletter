@@ -15,6 +15,9 @@ def format_html(
     sanitize: bool = False
 ) -> str:
     for key, value in replacements.items():
+        if key not in html:
+            raise KeyError("Substitution key not found in text to replace")
+
         if sanitize:
             cleaned = bleach.clean(value)
             linkified = bleach.linkify(cleaned)
@@ -32,6 +35,9 @@ def make_navbar(
     issue: int,
     curr_issue: int
 ) -> str:
+    if issue < 0 or issue > curr_issue:
+        raise ValueError("Issue outside of valid range")
+
     p_valid = "disable" if issue <= 0 else ""
     n_valid = "disable" if issue >= curr_issue else ""
     c_valid = "disable" if issue == curr_issue else ""
@@ -39,7 +45,7 @@ def make_navbar(
     return format_html(
         NAVBAR,
         {
-            "PREV" : str(issue - 1),
+            "PREV" : str(max(issue - 1, 0)),
             "P_VALID": p_valid,
             "NEXT" : str(issue + 1),
             "N_VALID": n_valid,
