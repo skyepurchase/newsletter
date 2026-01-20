@@ -90,3 +90,17 @@ class TestVerify:
 
             # ASSERT
             assert success
+
+    def test_random_password_fails(self):
+        for _ in range(10):
+            # ARRANGE
+            length = random.randint(8, 32)
+            passcode = "".join(random.sample(string.ascii_letters, length))
+            attempt = "".join(random.sample(string.ascii_letters, length))
+            hash = hash_passcode(passcode)
+
+            # ACT
+            success = verify(attempt, hash)
+
+            # ASSERT
+            assert not success
