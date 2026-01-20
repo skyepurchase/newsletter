@@ -1,5 +1,4 @@
 import os
-import json
 import sys
 import logging
 import traceback
@@ -11,19 +10,7 @@ from utils.type_hints import MailerConfig
 
 
 EDITOR = os.environ.get("EDITOR", "vim")
-
-with open("/home/atp45/.secrets.json", "r") as f:
-    SECRETS = json.loads(f.read())
-
-
-LOGGER = logging.getLogger("mailer")
-formatter = logging.Formatter(
-    "[%(asctime)s %(levelname)s] GENERIC: %(message)s", datefmt=LOG_TIME_FORMAT
-)
-handler = logging.FileHandler("/home/atp45/logs/mailer")
-handler.setFormatter(formatter)
-LOGGER.addHandler(handler)
-LOGGER.setLevel(logging.DEBUG)
+LOGGER = logging.getLogger(__name__)
 
 
 def main(config: MailerConfig) -> MailerConfig:
@@ -48,7 +35,7 @@ def main(config: MailerConfig) -> MailerConfig:
         LOGGER.info("Publishing")
         config.text = "Hope you have all had a wonderful month!"
     else:
-        LOGGER.warning("Illegal config file submitted!")
+        LOGGER.critical("Illegal config file submitted!")
         sys.exit(2)
 
     try:
@@ -64,13 +51,22 @@ def main(config: MailerConfig) -> MailerConfig:
     email = generate_email_request(config)
     send_email(email, config)
 
-    return config
-
 
 if __name__ == "__main__":
+    import json
     from argparse import ArgumentParser
 
-    args = ArgumentParser(prog="Newsletter make script")
+    formatter = logging.Formatter(
+        "[%(asctime)s %(levelname)s] GENERIC: %(message)s", datefmt=LOG_TIME_FORMAT
+    )
+    handler = logging.FileHandler("/home/atp45/logs/mailer")
+    handler.setFormatter(formatter)
+    LOGGER.addHandler(handler)
+    LOGGER.setLevel(logging.DEBUG)
+
+    secrets = json.loads(open("/home/atp45/.secrets.json", "r").read())
+
+    args = ArgumentParser(prog="Mailer agent for newsletter")
     args.add_argument("-c", "--config_dir", required=True)
     args.add_argument("-d", "--debug", action="store_true")
     args.add_argument("-q", "--question", action="store_true")
@@ -87,7 +83,7 @@ if __name__ == "__main__":
                 isAnswer=args.answer,
                 isSend=not (args.answer or args.question),
                 isManual=args.manual,
-                password=SECRETS["MAIL_PASS"],
+                password=secrets["MAIL_PASS"],
                 debug=args.debug,
                 name=config.name,
                 email=config.email,

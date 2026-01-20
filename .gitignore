@@ -9,3 +9,6 @@ lethal_company/
 
 # Python
 __pycache__/
+
+# Testing
+.coverage
