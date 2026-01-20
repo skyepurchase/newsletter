@@ -51,7 +51,7 @@ class TestMailer:
             if path == "missing/emails.txt":
                 raise FileNotFoundError
             else:
-                mock_file(path, mode, *args, **kwargs)
+                return mock_file(path, mode, *args, **kwargs)
 
         mocker.patch("builtins.open", conditional_open)
 

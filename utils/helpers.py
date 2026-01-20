@@ -1,4 +1,5 @@
 import os
+from pydantic import ValidationError
 import yaml
 import traceback
 import logging
@@ -31,10 +32,10 @@ def load_config(
         ) as config_file:
             config = yaml.safe_load(config_file)
     except OSError:
-        logger.critical(f"Failed to load {newsletter_folder}")
+        logger.warning(f"Failed to load {newsletter_folder}")
         return False, EmptyConfig
     except yaml.YAMLError:
-        logger.critical(f"Failed to parse {newsletter_folder}")
+        logger.warning(f"Failed to parse {newsletter_folder}")
         return False, EmptyConfig
 
     try:
@@ -43,17 +44,24 @@ def load_config(
         ) as issue_file:
             issue = int(issue_file.read())
     except OSError:
-        logger.critical(f"Failed to load {newsletter_folder} issue file")
+        logger.warning(f"Failed to load {newsletter_folder} issue file")
         return False, EmptyConfig
     except ValueError:
+        logger.warning(f"Failed to parse {newsletter_folder} issue file")
         logger.debug(traceback.format_exc())
         return False, EmptyConfig
 
-    return True, NewsletterConfig(
-        name=config["name"],
-        email=config["email"],
-        folder=config["folder"],
-        link=config["link"],
-        issue=issue,
-        defaults=config["defaults"],
-    )
+    try:
+        parsed_config = NewsletterConfig(
+            name=config["name"],
+            email=config["email"],
+            folder=config["folder"],
+            link=config["link"],
+            issue=issue,
+            defaults=config["defaults"],
+        )
+    except ValidationError:
+        logger.warning(f"Failed to validate {newsletter_folder}")
+        return False, EmptyConfig
+
+    return True, parsed_config
