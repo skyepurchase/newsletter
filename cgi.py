@@ -16,7 +16,7 @@ from .utils.database import (
 )
 
 from typing import DefaultDict, Optional
-from .utils.type_hints import NewsletterToken
+from .utils.type_hints import NewsletterToken, NewsletterException
 
 
 DIR = os.path.dirname(__file__)
@@ -36,7 +36,7 @@ LOGGER.setLevel(logging.DEBUG)
 
 
 def render_question_form(
-    title: str, newsletter_id: int, issue: int, curr_issue: int, HttpResponse
+    title: str, newsletter_id: int, issue: int, curr_issue: int
 ) -> None:
     """
     Render the question submission form for the given newsletter.
@@ -49,7 +49,7 @@ def render_question_form(
         The newsletter ID
     issue : int
         The current issue number
-    HttpResponse
+    NewsletterException
         An Exception object to throw which is handled by the HTTP server
     """
     LOGGER.info("Rendering question form")
@@ -86,7 +86,7 @@ def render_question_form(
 
 
 def render_answer_form(
-    title: str, newsletter_id: int, issue: int, curr_issue: int, HttpResponse
+    title: str, newsletter_id: int, issue: int, curr_issue: int
 ) -> None:
     """
     Render the response form for the given newsletter.
@@ -101,7 +101,7 @@ def render_answer_form(
         The newsletter id
     issue : int
         The current issue number
-    HttpResponse
+    NewsletterException
         An Exception object to throw which is handled by the HTTP server
     """
     LOGGER.info("Rendering answer form")
@@ -143,7 +143,7 @@ def render_answer_form(
                 values,
             )
         else:
-            raise HttpResponse(500, f"question type {q_type} unknown.")
+            raise NewsletterException(500, f"question type {q_type} unknown.")
 
     values = {
         "HEADER": HEADER,
@@ -159,7 +159,7 @@ def render_answer_form(
 
 
 def render_newsletter(
-    title: str, newsletter_id: int, issue: int, curr_issue: int, HttpResponse
+    title: str, newsletter_id: int, issue: int, curr_issue: int
 ) -> None:
     """
     Render the given newsletter.
@@ -170,7 +170,7 @@ def render_newsletter(
         The title of the newsletter (prevents unnecessary database calls)
     newsletter_id : int
         The newsletter id
-    HttpResponse
+    NewsletterException
         An Exception object to throw which is handled by the HTTP server
     """
     LOGGER.info("Rendering published newsletter")
@@ -222,7 +222,6 @@ def render_newsletter(
 def render(
     token: NewsletterToken,
     issue: Optional[int],
-    HttpResponse,  # TODO: type hint this properly
 ) -> None:
     """
     Render the relevant form or page based on 'factors'.
@@ -233,20 +232,22 @@ def render(
         The dict of processed JSON web token
     issue : int
         The issue number to render
-    HttpResponse : Error
+    NewsletterException : Error
         The suitable error to throw HTTP Responses
     """
     success, config = load_config(token.folder, LOGGER)
     if not success:
-        raise HttpResponse(500, "Failed to load config")
+        raise NewsletterException(500, "Failed to load config")
 
     if issue is not None:
         if issue > config.issue and issue < 0:
-            raise HttpResponse(404, f"Issue {issue} does not exist for {token.title}")
+            raise NewsletterException(
+                404, f"Issue {issue} does not exist for {token.title}"
+            )
         if issue < config.issue:
             LOGGER.debug(f"Rendering historical issue no. {issue}")
             # An old issue so just render it
-            render_newsletter(token.title, token.id, issue, config.issue, HttpResponse)
+            render_newsletter(token.title, token.id, issue, config.issue)
             return
 
     week = int(NOW.strftime("%U"))
@@ -255,18 +256,20 @@ def render(
         f"Issue: {config.issue}, Config folder: {token.folder}, stage: {week % 4}"
     )
 
-    params = [token.title, token.id, config.issue, config.issue, HttpResponse]
+    params = [token.title, token.id, config.issue, config.issue, NewsletterException]
 
     if week % 4 in [1, 2]:
         default_questions, _ = get_questions(token.id, config.issue)
 
         if len(default_questions) == 0:
             LOGGER.info("Inserting default questions")
-            success = insert_default_questions(token.id, config.issue, config.defaults)
+            success, error = insert_default_questions(
+                token.id, config.issue, config.defaults
+            )
 
             if not success:
                 LOGGER.warning(
-                    "Failed to add default questions. Will attempt next time"
+                    f"Failed to add default questions:\n{error}\nWill attempt next time"
                 )
 
         render_question_form(*params)
@@ -276,7 +279,7 @@ def render(
         render_newsletter(*params)
 
 
-def answer(parameters: dict, HttpResponse):
+def answer(parameters: dict):
     """
         Add a users answers to the database if they are authorised.
 
@@ -284,7 +287,7 @@ def answer(parameters: dict, HttpResponse):
         ----------
         parameters : dict
             The dict of processed POST parameters
-        HttpResponse : Error
+        NewsletterException : Error
     The suitable error to throw HTTP Responses
     """
     responses = DefaultDict(lambda: {"img": None, "text": None})
@@ -295,14 +298,14 @@ def answer(parameters: dict, HttpResponse):
             continue
         if key == "name":
             if response == "":
-                raise HttpResponse(422, "No name provided")
+                raise NewsletterException(422, "No name provided")
 
             name = response
             continue
 
         parts = key.split("_")
         if len(parts) != 2:
-            raise HttpResponse(
+            raise NewsletterException(
                 400, "Form keys not in two parts. Do not mess with the post request!"
             )
 
@@ -317,19 +320,20 @@ def answer(parameters: dict, HttpResponse):
             LOGGER.info("Processing images upload")
             responses[q_id]["img"] = response["path"]
         else:
-            raise HttpResponse(
+            raise NewsletterException(
                 400,
                 "Form keys are not in expected format. Do not mess with the post request!",
             )
 
     created, error = insert_answer(name, responses)
     if created:
-        raise HttpResponse(201, "Thank you for submitting you answers :).")
+        raise NewsletterException(201, "Thank you for submitting you answers :).")
     else:
-        raise HttpResponse(500, error)
+        assert isinstance(error, str)
+        raise NewsletterException(500, error)
 
 
-def question_submit(token: NewsletterToken, parameters: dict, HttpResponse):
+def question_submit(token: NewsletterToken, parameters: dict):
     """
         Add a users questions to the database if they are authorised.
 
@@ -339,21 +343,22 @@ def question_submit(token: NewsletterToken, parameters: dict, HttpResponse):
             The dict of processed JSON web token
         parameters : dict
             The dict of processed POST parameters
-        HttpResponse : Error
+        NewsletterException : Error
     The suitable error to throw HTTP Responses
     """
     success, config = load_config(token.folder, LOGGER)
     if not success:
-        raise HttpResponse(500, "Failed to load config")
+        raise NewsletterException(500, "Failed to load config")
 
     name = parameters["name"]
     question = parameters["question"]
 
     if name == "" or question == "":
-        raise HttpResponse(422, "No name or question provided")
+        raise NewsletterException(422, "No name or question provided")
 
     created, error = insert_question(token.id, config.issue, name, question)
     if created:
-        raise HttpResponse(201, "Thank you for submitting you question :).")
+        raise NewsletterException(201, "Thank you for submitting you question :).")
     else:
-        raise HttpResponse(500, error)
+        assert isinstance(error, str)
+        raise NewsletterException(500, error)

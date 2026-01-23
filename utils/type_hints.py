@@ -44,3 +44,9 @@ class NewsletterToken:
 
 QuestionResponse = Tuple[str, str, str]
 Response = Tuple[str, int, List[QuestionResponse]]
+
+
+class NewsletterException(Exception):
+    def __init__(self, status: int, msg: str) -> None:
+        self.status = status
+        self.msg = msg
