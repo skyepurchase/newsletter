@@ -82,7 +82,9 @@ class TestVerify:
         for _ in range(10):
             # ARRANGE
             length = random.randint(8, 32)
-            passcode = "".join(random.sample(string.ascii_letters, length))
+            passcode = "".join(
+                [random.choice(string.ascii_letters) for _ in range(length)]
+            )
             hash = hash_passcode(passcode)
 
             # ACT
@@ -95,8 +97,12 @@ class TestVerify:
         for _ in range(10):
             # ARRANGE
             length = random.randint(8, 32)
-            passcode = "".join(random.sample(string.ascii_letters, length))
-            attempt = "".join(random.sample(string.ascii_letters, length))
+            passcode = "".join(
+                [random.choice(string.ascii_letters) for _ in range(length)]
+            )
+            attempt = "".join(
+                [random.choice(string.ascii_letters) for _ in range(length)]
+            )
             hash = hash_passcode(passcode)
 
             # ACT

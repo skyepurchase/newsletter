@@ -4,7 +4,7 @@ import logging
 import traceback
 
 from utils.constants import LOG_TIME_FORMAT
-from utils.email import generate_email_request, send_email
+from utils.email import generate_email, send_email
 from utils.helpers import load_config
 from utils.type_hints import MailerConfig
 
@@ -48,7 +48,7 @@ def main(config: MailerConfig) -> MailerConfig:
         LOGGER.debug(traceback.format_exc())
         exit(1)
 
-    email = generate_email_request(config)
+    email = generate_email(config)
     send_email(email, config)
 
 

@@ -1,49 +1,39 @@
+import os
 import smtplib
 import ssl
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-from .type_hints import MailerConfig
+from utils.html import format_html
+from utils.type_hints import MailerConfig
 
 
 PORT = 465
+DIR = os.path.dirname(__file__)
 
 
-def generate_email_request(config: MailerConfig):
-    request = (
-        "submit questions"
-        if config.isQuestion
-        else "submit answers"
-        if config.isAnswer
-        else "view"
-    )
-
-    email = f"""
-<html><head>
-<meta charset="UTF-8">
-<meta http-equiv="X-UA-Compatible" content="IE-edge">
-<meta name="viewpoint" content="width=device.width, initial-scale=1.0">
-<title>{config.name}</title>
-</head><body>\n"""
-
-    if config.isSend:
-        email += f"<h1>{config.name.title()} Issue {config.issue}</h1>\n"
+def generate_email(config: MailerConfig):
+    if config.isQuestion:
+        request = "submit questions"
+    elif config.isAnswer:
+        request = "submit answers"
     else:
-        email += f"<h1>{request.title()} for Issue {config.issue}</h1>\n"
+        request = "view"
 
-    email += f"<p>{config.text}</p>\n"
-    email += f"""
-<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; text-align: center; padding: 20px;">
-        <a href={config.link} target="_blank" rel="noopener noreferrer" style="background-color: #6272a4; color: white; border: none; padding: 16px 32px; font-size: 16px; font-weight: 600; border-radius: 8px; cursor: pointer; text-transform: none; letter-spacing: 0.5px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-decoration: none; display: inline-block; text-align: center;">{request.title()}</a>
-</div>
-"""
-    email += "</body><html>\n"
+    email_html = open(os.path.join(DIR, "../templates/email.html")).read()
 
-    return email
+    values = {
+        "NAME": config.name.title(),
+        "ISSUE": config.issue,
+        "LINK": config.link,
+        "TYPE": request,
+    }
+
+    return format_html(email_html, values)
 
 
-def send_email(body, config):
+def send_email(body: str, config: MailerConfig) -> bool:
     message = MIMEMultipart("alternative")
     message["Subject"] = f"{config.name} Issue {config.issue}"
 
@@ -65,8 +55,14 @@ def send_email(body, config):
     context = ssl.create_default_context()
 
     with smtplib.SMTP_SSL("smtp.gmail.com", PORT, context=context) as server:
-        server.login(config.email, config.password)
+        try:
+            server.login(config.email, config.password)
+        except smtplib.SMTPAuthenticationError:
+            return False
+
         if config.debug:
             server.sendmail(config.email, config.email, message.as_string())
         else:
             server.sendmail(config.email, config.addresses, message.as_string())
+
+        return True
