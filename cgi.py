@@ -1,9 +1,7 @@
 import os, shutil, logging
 
-from datetime import datetime
-
-from .utils.helpers import load_config
-from .utils.constants import LOG_TIME_FORMAT
+from .utils.helpers import get_state, load_config
+from .utils.constants import LOG_TIME_FORMAT, State
 from .utils.html import format_html, make_navbar
 from .utils.database import (
     get_questions,
@@ -18,8 +16,6 @@ from .utils.type_hints import NewsletterToken
 
 
 DIR = os.path.dirname(__file__)
-NOW = datetime.now()
-
 HEADER = open(
     os.path.join(DIR, "templates/header.html")).read()
 
@@ -316,10 +312,6 @@ def render(
             )
             return
 
-    week = int(NOW.strftime("%U"))
-
-    LOGGER.debug(f"Issue: {config.issue}, Config folder: {token.folder}, stage: {week % 4}")
-
     params = [
         token.title,
         token.id,
@@ -327,7 +319,8 @@ def render(
         HttpResponse
     ]
 
-    if week % 4 in [1,2]:
+    state = get_state()
+    if state == State.Question:
         default_questions, _ = get_questions(
             token.id, config.issue
         )
@@ -342,7 +335,7 @@ def render(
                 LOGGER.warning("Failed to add default questions. Will attempt next time")
 
         render_question_form(*params)
-    elif week % 4 == 3:
+    elif state == State.Answer:
         render_answer_form(*params)
     else:
         render_newsletter(*params)
