@@ -1,11 +1,18 @@
 import os
-from pydantic import ValidationError
 import yaml
 import traceback
 import logging
+from dotenv import load_dotenv
+from pydantic import ValidationError
 
 from typing import Tuple
 from .type_hints import EmptyConfig, NewsletterConfig
+
+
+load_dotenv()
+
+
+HOME = os.getenv("HOME")
 
 
 def load_config(
@@ -26,9 +33,13 @@ def load_config(
     config : NewsletterConfig
         The configuration for this newsletter
     """
+    if HOME is None:
+        logger.critical("Failed to find home directory")
+        return False, EmptyConfig
+
     try:
         with open(
-            os.path.join("/home/atp45", newsletter_folder, "config.yaml"), "r"
+            os.path.join(HOME, newsletter_folder, "config.yaml"), "r"
         ) as config_file:
             config = yaml.safe_load(config_file)
     except OSError:
@@ -39,9 +50,7 @@ def load_config(
         return False, EmptyConfig
 
     try:
-        with open(
-            os.path.join("/home/atp45", newsletter_folder, "issue"), "r"
-        ) as issue_file:
+        with open(os.path.join(HOME, newsletter_folder, "issue"), "r") as issue_file:
             issue = int(issue_file.read())
     except OSError:
         logger.warning(f"Failed to load {newsletter_folder} issue file")

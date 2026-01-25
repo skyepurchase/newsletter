@@ -1,11 +1,10 @@
 import os
 import shutil
-import logging
-
+from dotenv import load_dotenv
 from datetime import datetime
 
+from utils.logger import renderer_logger as LOGGER
 from .utils.helpers import load_config
-from .utils.constants import LOG_TIME_FORMAT
 from .utils.html import format_html, make_navbar
 from .utils.database import (
     get_questions,
@@ -19,20 +18,13 @@ from typing import DefaultDict, Optional
 from .utils.type_hints import NewsletterToken, NewsletterException
 
 
+load_dotenv()
+
+
+HOME = os.getenv("HOME")
+
 DIR = os.path.dirname(__file__)
 NOW = datetime.now()
-
-HEADER = open(os.path.join(DIR, "templates/header.html")).read()
-
-
-formatter = logging.Formatter(
-    "[%(asctime)s %(levelname)s] %(message)s", datefmt=LOG_TIME_FORMAT
-)
-LOGGER = logging.getLogger(__name__)
-handler = logging.FileHandler("/home/atp45/logs/newsletter")
-handler.setFormatter(formatter)
-LOGGER.addHandler(handler)
-LOGGER.setLevel(logging.DEBUG)
 
 
 def render_question_form(
@@ -73,7 +65,7 @@ def render_question_form(
         )
 
     values = {
-        "HEADER": HEADER,
+        "HEADER": open(os.path.join(DIR, "templates/header.html")).read(),
         "NAVBAR": make_navbar(issue, curr_issue),
         "TITLE": f"{title} {issue}",
         "SUBMITTED": format_html(submitted_questions, {"RESPONSES": submission_html}),
@@ -146,7 +138,7 @@ def render_answer_form(
             raise NewsletterException(500, f"question type {q_type} unknown.")
 
     values = {
-        "HEADER": HEADER,
+        "HEADER": open(os.path.join(DIR, "templates/header.html")).read(),
         "NAVBAR": make_navbar(issue, curr_issue),
         "QUESTIONS": question_html,
         "TITLE": f"{title} {issue}",
@@ -194,8 +186,10 @@ def render_newsletter(
                     text_response, {"NAME": name, "TEXT": text}, sanitize=True
                 )
             else:
+                assert HOME is not None, "Failed to find home directory"
+
                 filename = img_path.split("/")[-1]
-                public_path = os.path.join("/home/atp45/public_html/images", filename)
+                public_path = os.path.join(HOME, "public_html/images", filename)
                 shutil.copy(img_path, public_path)
                 q_html += format_html(
                     img_response,
@@ -207,7 +201,7 @@ def render_newsletter(
         n_html += format_html(question_board, q_values)
 
     values = {
-        "HEADER": HEADER,
+        "HEADER": open(os.path.join(DIR, "templates/header.html")).read(),
         "NAVBAR": make_navbar(issue, curr_issue),
         "TITLE": f"{title} {issue}",
         "NEWSLETTER": n_html,

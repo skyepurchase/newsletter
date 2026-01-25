@@ -1,30 +1,17 @@
 import os
 import sys
-import logging
 import traceback
 
-from utils.constants import LOG_TIME_FORMAT
+from utils.logger import mailer_logger as LOGGER
 from utils.email import generate_email, send_email
 from utils.helpers import load_config
 from utils.type_hints import MailerConfig
 
 
-EDITOR = os.environ.get("EDITOR", "vim")
-LOGGER = logging.getLogger(__name__)
+EDITOR = os.getenv("EDITOR", "vim")
 
 
-def main(config: MailerConfig) -> MailerConfig:
-    formatter = logging.Formatter(
-        f"[%(asctime)s %(levelname)s] {config.name}: %(message)s",
-        datefmt=LOG_TIME_FORMAT,
-    )
-    handler = logging.FileHandler("/home/atp45/logs/mailer")
-    handler.setFormatter(formatter)
-
-    for hdlr in LOGGER.handlers[:]:
-        LOGGER.removeHandler(hdlr)
-    LOGGER.addHandler(handler)
-
+def main(config: MailerConfig) -> None:
     if config.isQuestion:
         LOGGER.info("Question request")
         config.text = "Time to submit your questions!"
@@ -53,18 +40,13 @@ def main(config: MailerConfig) -> MailerConfig:
 
 
 if __name__ == "__main__":
-    import json
     from argparse import ArgumentParser
+    from dotenv import load_dotenv
 
-    formatter = logging.Formatter(
-        "[%(asctime)s %(levelname)s] GENERIC: %(message)s", datefmt=LOG_TIME_FORMAT
-    )
-    handler = logging.FileHandler("/home/atp45/logs/mailer")
-    handler.setFormatter(formatter)
-    LOGGER.addHandler(handler)
-    LOGGER.setLevel(logging.DEBUG)
+    load_dotenv()
 
-    secrets = json.loads(open("/home/atp45/.secrets.json", "r").read())
+    MAIL_PASS = os.getenv("MAIL_PASS")
+    assert MAIL_PASS is not None, "Failed to find email config"
 
     args = ArgumentParser(prog="Mailer agent for newsletter")
     args.add_argument("-c", "--config_dir", required=True)
@@ -83,7 +65,7 @@ if __name__ == "__main__":
                 isAnswer=args.answer,
                 isSend=not (args.answer or args.question),
                 isManual=args.manual,
-                password=secrets["MAIL_PASS"],
+                password=MAIL_PASS,
                 debug=args.debug,
                 name=config.name,
                 email=config.email,

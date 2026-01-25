@@ -1,4 +1,5 @@
-import json
+import os
+from dotenv import load_dotenv
 
 import mysql.connector
 from mysql.connector.abstracts import MySQLConnectionAbstract, MySQLCursorAbstract
@@ -7,6 +8,14 @@ from mysql.connector.pooling import PooledMySQLConnection
 
 from .type_hints import Response
 from typing import Any, List, Optional, Tuple, Union
+
+
+load_dotenv()
+
+
+USER = os.getenv("USER")
+DB_PASS = os.getenv("DB_PASS")
+DATABASE = os.getenv("DATABASE")
 
 
 def _process_insert_errors(code: int) -> str:
@@ -34,19 +43,20 @@ def _get_connection() -> Tuple[
     cursor
         The cursor in the database
     """
-    with open("/home/atp45/.secrets.json", "r") as f:
-        SECRETS = json.loads(f.read())
+    assert USER is not None, "Failed to find database config"
+    assert DB_PASS is not None, "Failed to find database config"
+    assert DATABASE is not None, "Failed to find the database config"
 
-        conn = mysql.connector.connect(
-            host="localhost",
-            user="atp45",
-            password=SECRETS["DB_PASS"],
-            database="atp45/newsletter",
-        )
-        conn.autocommit = False
-        cursor = conn.cursor()
+    conn = mysql.connector.connect(
+        host="localhost",
+        user=USER,
+        password=DB_PASS,
+        database=DATABASE,
+    )
+    conn.autocommit = False
+    cursor = conn.cursor()
 
-        return conn, cursor
+    return conn, cursor
 
 
 def get_newsletters() -> list:

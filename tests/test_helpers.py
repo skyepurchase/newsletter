@@ -1,6 +1,14 @@
 import logging
+import os
+from dotenv import load_dotenv
 from utils.helpers import load_config
 from utils.type_hints import EmptyConfig, NewsletterConfig
+
+
+load_dotenv()
+
+
+HOME = os.getenv("HOME", "")
 
 
 class TestLoadConfig:
@@ -12,7 +20,7 @@ class TestLoadConfig:
         mock_file = mocker.mock_open()
 
         def conditional_open(path, mode="r", *args, **kwargs):
-            if path == "/home/atp45/missing/config.yaml":
+            if path == os.path.join(HOME, "missing/config.yaml"):
                 raise FileNotFoundError
             else:
                 return mock_file(path, mode, *args, **kwargs)
@@ -47,7 +55,7 @@ class TestLoadConfig:
         mock_file = mocker.mock_open(read_data=self.valid_data)
 
         def conditional_open(path, mode="r", *args, **kwargs):
-            if path == "/home/atp45/exists/issue":
+            if path == os.path.join(HOME, "exists/issue"):
                 raise FileNotFoundError
             else:
                 return mock_file(path, mode, *args, **kwargs)
@@ -69,7 +77,7 @@ class TestLoadConfig:
         mock_config = mocker.mock_open(read_data=self.valid_data)
 
         def conditional_open(path, mode="r", *args, **kwargs):
-            if path == "/home/atp45/exists/issue":
+            if path == os.path.join(HOME, "exists/issue"):
                 return mock_issue(path, mode, *args, **kwargs)
             else:
                 return mock_config(path, mode, *args, **kwargs)
@@ -91,7 +99,7 @@ class TestLoadConfig:
         mock_config = mocker.mock_open(read_data=self.valid_data)
 
         def conditional_open(path, mode="r", *args, **kwargs):
-            if path == "/home/atp45/exists/issue":
+            if path == os.path.join(HOME, "exists/issue"):
                 return mock_issue(path, mode, *args, **kwargs)
             else:
                 return mock_config(path, mode, *args, **kwargs)
@@ -117,7 +125,7 @@ class TestLoadConfig:
         mock_config = mocker.mock_open(read_data=self.valid_data[:-11] + "text")
 
         def conditional_open(path, mode="r", *args, **kwargs):
-            if path == "/home/atp45/exists/issue":
+            if path == os.path.join(HOME, "exists/issue"):
                 return mock_issue(path, mode, *args, **kwargs)
             else:
                 return mock_config(path, mode, *args, **kwargs)
