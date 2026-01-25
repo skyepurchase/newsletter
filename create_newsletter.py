@@ -7,19 +7,11 @@ from utils.html import hash_passcode
 from utils.database import create_newsletter
 
 
-if __name__ == "__main__":
-    parser = ArgumentParser("Create Newsletter")
-    parser.add_argument("--title", required=True, help="The title of the newsletter.")
-    parser.add_argument(
-        "--email", required=True, help="The email to be used when sending out requests."
-    )
-
-    args = parser.parse_args()
-    passcode = getpass("Passcode: ")
+def create(title: str, email: str,  passcode: str):
     pass_hash = hash_passcode(passcode)
 
-    folder_name = args.title.lower().replace(" ", "_")
-    folder = os.path.join("newsletters/", folder_name)
+    folder_name = title.lower().replace(" ", "_")
+    folder = os.path.join("newsletters", folder_name)
 
     if not os.path.isdir(folder):
         os.makedirs(folder)
@@ -27,8 +19,8 @@ if __name__ == "__main__":
         os.chmod(folder, 0o0710)
 
     base_config = {
-        "name": args.title,
-        "email": args.email,
+        "name": title,
+        "email": email,
         "folder": folder,
         "link": "https://skye.purchasethe.uk/projects/newsletter/",
         "issue": 1,
@@ -49,4 +41,17 @@ if __name__ == "__main__":
         f"Update {os.path.join(folder, 'emails.txt')} to include the emails of the participants."
     )
 
-    create_newsletter(args.title, pass_hash, folder)
+    create_newsletter(title, pass_hash, folder)
+
+
+if __name__ == "__main__":
+    parser = ArgumentParser("Create Newsletter")
+    parser.add_argument("--title", required=True, help="The title of the newsletter.")
+    parser.add_argument(
+        "--email", required=True, help="The email to be used when sending out requests."
+    )
+
+    args = parser.parse_args()
+    passcode = getpass("Passcode: ")
+
+    create(args.title, args.email, passcode)
