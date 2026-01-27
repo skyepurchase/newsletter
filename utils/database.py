@@ -131,6 +131,12 @@ def get_questions(newsletter_id: int, issue: int) -> Tuple[list, list]:
 
 
 def get_responses(newsletter_id: int, issue: int) -> List[Response]:
+    """
+    Returns
+    -------
+    results : list[creator, question, list[name, text, path]]
+        The questions and their responses
+    """
     conn, cursor = _get_connection()
 
     results = []

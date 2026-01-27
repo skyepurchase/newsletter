@@ -4,9 +4,9 @@ from dotenv import load_dotenv
 from datetime import datetime
 
 from utils.logger import renderer_logger as LOGGER
-from .utils.helpers import load_config
-from .utils.html import format_html, make_navbar
-from .utils.database import (
+from utils.helpers import load_config
+from utils.html import format_html, make_navbar
+from utils.database import (
     get_questions,
     get_responses,
     insert_answer,
@@ -15,7 +15,7 @@ from .utils.database import (
 )
 
 from typing import DefaultDict, Optional
-from .utils.type_hints import NewsletterToken, NewsletterException
+from utils.type_hints import NewsletterToken, NewsletterException
 
 
 load_dotenv()
@@ -189,7 +189,7 @@ def render_newsletter(
                 shutil.copy(img_path, public_path)
                 q_html += format_html(
                     img_response,
-                    {"NAME": name, "SRC": f"/images/{filename}", "CAPTION": text},
+                    {"NAME": name, "SRC": f"/images/{filename}", "CAPTION": text}, sanitize=True
                 )
 
         q_values["RESPONSES"] = q_html
@@ -218,7 +218,7 @@ def render(
 
     Parameters
     ----------
-    token : dict
+    token : NewsletterToken
         The dict of processed JSON web token
     issue : int
         The issue number to render
@@ -228,7 +228,7 @@ def render(
         raise NewsletterException(500, "Failed to load config")
 
     if issue is not None:
-        if issue > config.issue and issue < 0:
+        if issue > config.issue or issue < 0:
             raise NewsletterException(
                 404, f"Issue {issue} does not exist for {token.title}"
             )
