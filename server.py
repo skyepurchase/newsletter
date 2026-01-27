@@ -28,7 +28,7 @@ NOW = datetime.now()
 
 
 def render_question_form(
-    title: str, newsletter_id: int, issue: int, curr_issue: int
+    title: str, newsletter_id: int, issue: int
 ) -> None:
     """
     Render the question submission form for the given newsletter.
@@ -41,8 +41,6 @@ def render_question_form(
         The newsletter ID
     issue : int
         The current issue number
-    NewsletterException
-        An Exception object to throw which is handled by the HTTP server
     """
     LOGGER.info("Rendering question form")
     html = open(os.path.join(DIR, "templates/question_form.html")).read()
@@ -66,7 +64,7 @@ def render_question_form(
 
     values = {
         "HEADER": open(os.path.join(DIR, "templates/header.html")).read(),
-        "NAVBAR": make_navbar(issue, curr_issue),
+        "NAVBAR": make_navbar(issue, issue),
         "TITLE": f"{title} {issue}",
         "SUBMITTED": format_html(submitted_questions, {"RESPONSES": submission_html}),
     }
@@ -78,7 +76,7 @@ def render_question_form(
 
 
 def render_answer_form(
-    title: str, newsletter_id: int, issue: int, curr_issue: int
+    title: str, newsletter_id: int, issue: int
 ) -> None:
     """
     Render the response form for the given newsletter.
@@ -87,14 +85,10 @@ def render_answer_form(
     ----------
     title : str
         The title of the newsletter (prevents unnecessary database calls)
-    passcode : str
-        The user submitted passcode
     newsletter_id : int
         The newsletter id
     issue : int
         The current issue number
-    NewsletterException
-        An Exception object to throw which is handled by the HTTP server
     """
     LOGGER.info("Rendering answer form")
     html = open(os.path.join(DIR, "templates/answer.html")).read()
@@ -139,7 +133,7 @@ def render_answer_form(
 
     values = {
         "HEADER": open(os.path.join(DIR, "templates/header.html")).read(),
-        "NAVBAR": make_navbar(issue, curr_issue),
+        "NAVBAR": make_navbar(issue, issue),
         "QUESTIONS": question_html,
         "TITLE": f"{title} {issue}",
     }
@@ -162,8 +156,10 @@ def render_newsletter(
         The title of the newsletter (prevents unnecessary database calls)
     newsletter_id : int
         The newsletter id
-    NewsletterException
-        An Exception object to throw which is handled by the HTTP server
+    issue : int
+        The issue number to render
+    curr_issue : int
+        The current issue according to the config files
     """
     LOGGER.info("Rendering published newsletter")
     html = open(os.path.join(DIR, "templates/newsletter.html")).read()
@@ -226,8 +222,6 @@ def render(
         The dict of processed JSON web token
     issue : int
         The issue number to render
-    NewsletterException : Error
-        The suitable error to throw HTTP Responses
     """
     success, config = load_config(token.folder, LOGGER)
     if not success:
@@ -250,8 +244,6 @@ def render(
         f"Issue: {config.issue}, Config folder: {token.folder}, stage: {week % 4}"
     )
 
-    params = [token.title, token.id, config.issue, config.issue, NewsletterException]
-
     if week % 4 in [1, 2]:
         default_questions, _ = get_questions(token.id, config.issue)
 
@@ -266,23 +258,21 @@ def render(
                     f"Failed to add default questions:\n{error}\nWill attempt next time"
                 )
 
-        render_question_form(*params)
+        render_question_form(token.title, token.id, config.issue)
     elif week % 4 == 3:
-        render_answer_form(*params)
+        render_answer_form(token.title, token.id, config.issue)
     else:
-        render_newsletter(*params)
+        render_newsletter(token.title, token.id, config.issue, config.issue)
 
 
 def answer(parameters: dict):
     """
-        Add a users answers to the database if they are authorised.
+    Add a users answers to the database if they are authorised.
 
-        Parameters
-        ----------
-        parameters : dict
-            The dict of processed POST parameters
-        NewsletterException : Error
-    The suitable error to throw HTTP Responses
+    Parameters
+    ----------
+    parameters : dict
+        The dict of processed POST parameters
     """
     responses = DefaultDict(lambda: {"img": None, "text": None})
     name = ""
@@ -329,16 +319,14 @@ def answer(parameters: dict):
 
 def question_submit(token: NewsletterToken, parameters: dict):
     """
-        Add a users questions to the database if they are authorised.
+    Add a users questions to the database if they are authorised.
 
-        Parameters
-        ----------
-        token : dict
-            The dict of processed JSON web token
-        parameters : dict
-            The dict of processed POST parameters
-        NewsletterException : Error
-    The suitable error to throw HTTP Responses
+    Parameters
+    ----------
+    token : NewsletterToken
+        The dict of processed JSON web token
+    parameters : dict
+        The dict of processed POST parameters
     """
     success, config = load_config(token.folder, LOGGER)
     if not success:
