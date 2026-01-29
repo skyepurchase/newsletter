@@ -1,5 +1,7 @@
+from collections import defaultdict
 import logging
 import copy
+from typing import DefaultDict
 import pytest
 from unittest.mock import ANY
 
@@ -378,7 +380,76 @@ class TestRender:
 
 
 class TestAnswer:
-    pass
+    params = {
+        "unlock": "password",
+        "name": "Jo Blogs",
+        "question_1": "",
+        "question_2": "Answer 2",
+        "question_3": "Caption",
+        "image_3": {"path": "some/path"},
+    }
+    def test_answer_submission(self, mocker, caplog):
+        mock_insert = mocker.patch('server.insert_answer')
+        mock_insert.return_value = (True, "")
+
+        caplog.set_level(logging.INFO)
+
+        responses = {
+            "2": {"img": None, "text": "Answer 2"},
+            "3": {"img": "some/path", "text": "Caption"}
+        }
+
+        with pytest.raises(NewsletterException) as e_info:
+            server.answer(self.params)
+
+        assert e_info.value.status == 201
+        assert e_info.value.msg == "Thank you for submitting your answers :)."
+
+        assert "Processing images upload" in caplog.text
+
+        mock_insert.assert_called_once_with("Jo Blogs", ANY)
+        assert isinstance(mock_insert.call_args[0][1], defaultdict)
+        assert dict(mock_insert.call_args[0][1]) == responses
+
+    def test_answer_submission_database_error(self, mocker):
+        mock_insert = mocker.patch('server.insert_answer')
+        mock_insert.return_value = (False, "database error")
+
+        with pytest.raises(NewsletterException) as e_info:
+            server.answer(self.params)
+
+        assert e_info.value.status == 500
+        assert e_info.value.msg == "database error"
+
+    def test_answer_submission_fake_type(self):
+        params = copy.deepcopy(self.params)
+        params["caption_1"] = "injection"
+
+        with pytest.raises(NewsletterException) as e_info:
+            server.answer(params)
+
+        assert e_info.value.status == 400
+        assert e_info.value.msg == "Form keys are not in expected format. Do not mess with the post request!"
+
+    def test_answer_submission_meddled(self):
+        params = copy.deepcopy(self.params)
+        params["image_caption_1"] = "injection"
+
+        with pytest.raises(NewsletterException) as e_info:
+            server.answer(params)
+
+        assert e_info.value.status == 400
+        assert e_info.value.msg == "Form keys not in two parts. Do not mess with the post request!"
+
+    def test_answer_submission_no_name(self):
+        params = copy.deepcopy(self.params)
+        params["name"] = ""
+
+        with pytest.raises(NewsletterException) as e_info:
+            server.answer(params)
+
+        assert e_info.value.status == 422
+        assert e_info.value.msg == "No name provided"
 
 
 class TestQuestion:

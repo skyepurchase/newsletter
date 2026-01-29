@@ -311,9 +311,8 @@ def answer(parameters: dict):
 
     created, error = insert_answer(name, responses)
     if created:
-        raise NewsletterException(201, "Thank you for submitting you answers :).")
+        raise NewsletterException(201, "Thank you for submitting your answers :).")
     else:
-        assert isinstance(error, str)
         raise NewsletterException(500, error)
 
 

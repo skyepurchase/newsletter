@@ -192,7 +192,7 @@ def get_responses(newsletter_id: int, issue: int) -> List[Response]:
     return results
 
 
-def insert_answer(name: str, responses: dict) -> Tuple[bool, Optional[str]]:
+def insert_answer(name: str, responses: dict) -> Tuple[bool, str]:
     """
     Insert the answers for a specific user.
 
@@ -206,7 +206,7 @@ def insert_answer(name: str, responses: dict) -> Tuple[bool, Optional[str]]:
     conn, cursor = _get_connection()
 
     success = True
-    error_text: Optional[str] = None
+    error_text = ""
     try:
         for q_id, data in responses.items():
             # Skip duplicate entries
