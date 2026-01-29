@@ -7,7 +7,7 @@ from utils.html import hash_passcode
 from utils.database import create_newsletter
 
 
-def create(title: str, email: str,  passcode: str):
+def create(title: str, email: str, passcode: str):
     pass_hash = hash_passcode(passcode)
 
     folder_name = title.lower().replace(" ", "_")

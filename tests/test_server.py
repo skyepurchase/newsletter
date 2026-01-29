@@ -1,19 +1,24 @@
 from collections import defaultdict
 import logging
 import copy
-from typing import DefaultDict
 import pytest
 from unittest.mock import ANY
 
 
 import server
-from utils.type_hints import EmptyConfig, NewsletterConfig, NewsletterException, NewsletterToken
+from utils.type_hints import (
+    EmptyConfig,
+    NewsletterConfig,
+    NewsletterException,
+    NewsletterToken,
+)
 
 
 class TestRenderers:
     title = "Newsletter"
     id = 1
     issue = 5
+
     def test_question_form_renderer(self, mocker, caplog):
         # ARRANGE
         mock_file = mocker.mock_open()
@@ -24,7 +29,10 @@ class TestRenderers:
         mock_format = mocker.patch("server.format_html")
         mock_navbar = mocker.patch("server.make_navbar")
         mock_questions = mocker.patch("server.get_questions")
-        mock_questions.return_value = (None, [(1, "User", "Question 1"), (2, "User 2", "Question 2")])
+        mock_questions.return_value = (
+            None,
+            [(1, "User", "Question 1"), (2, "User 2", "Question 2")],
+        )
 
         caplog.set_level(logging.INFO)
 
@@ -35,8 +43,12 @@ class TestRenderers:
         mock_print.assert_any_call("Content-Type: text/html")
         mock_print.assert_any_call("Status: 200\n")
 
-        mock_format.assert_any_call(ANY, {"NAME": "User", "TEXT": "Question 1"}, sanitize=True)
-        mock_format.assert_any_call(ANY, {"NAME": "User 2", "TEXT": "Question 2"}, sanitize=True)
+        mock_format.assert_any_call(
+            ANY, {"NAME": "User", "TEXT": "Question 1"}, sanitize=True
+        )
+        mock_format.assert_any_call(
+            ANY, {"NAME": "User 2", "TEXT": "Question 2"}, sanitize=True
+        )
         mock_navbar.assert_called()
 
         assert "Rendering question form" in caplog.text
@@ -64,7 +76,10 @@ class TestRenderers:
         mock_format = mocker.patch("server.format_html")
         mock_navbar = mocker.patch("server.make_navbar")
         mock_questions = mocker.patch("server.get_questions")
-        mock_questions.return_value = ([(3, "Text Question", "text"), (4, "Image Question", "image")], [(1, "User", "Question 1"), (2, "User 2", "Question 2")])
+        mock_questions.return_value = (
+            [(3, "Text Question", "text"), (4, "Image Question", "image")],
+            [(1, "User", "Question 1"), (2, "User 2", "Question 2")],
+        )
 
         caplog.set_level(logging.INFO)
 
@@ -75,10 +90,23 @@ class TestRenderers:
         mock_print.assert_any_call("Content-Type: text/html")
         mock_print.assert_any_call("Status: 200\n")
 
-        mock_format.assert_any_call(ANY, {"ID": "question_1", "NAME": "User", "QUESTION": "Question 1"}, sanitize=True)
-        mock_format.assert_any_call(ANY, {"ID": "question_2", "NAME": "User 2", "QUESTION": "Question 2"}, sanitize=True)
-        mock_format.assert_any_call("text_question", {"ID": "question_3", "QUESTION": "Text Question"})
-        mock_format.assert_any_call("img_question", {"ID": "question_4", "QUESTION": "Image Question", "IMG_ID": "image_4"})
+        mock_format.assert_any_call(
+            ANY,
+            {"ID": "question_1", "NAME": "User", "QUESTION": "Question 1"},
+            sanitize=True,
+        )
+        mock_format.assert_any_call(
+            ANY,
+            {"ID": "question_2", "NAME": "User 2", "QUESTION": "Question 2"},
+            sanitize=True,
+        )
+        mock_format.assert_any_call(
+            "text_question", {"ID": "question_3", "QUESTION": "Text Question"}
+        )
+        mock_format.assert_any_call(
+            "img_question",
+            {"ID": "question_4", "QUESTION": "Image Question", "IMG_ID": "image_4"},
+        )
         mock_navbar.assert_called()
 
         assert "Rendering answer form" in caplog.text
@@ -109,7 +137,11 @@ class TestRenderers:
         mock_responses = mocker.patch("server.get_responses")
         mock_responses.return_value = [
             ("User", "Question 1", [("User 2", "Answer 1", None)]),
-            ("User 2", "Question 2", [("User 1", "Answer 1", None), ("User 2", "Answer 2", "path")])
+            (
+                "User 2",
+                "Question 2",
+                [("User 1", "Answer 1", None), ("User 2", "Answer 2", "path")],
+            ),
         ]
 
         caplog.set_level(logging.INFO)
@@ -121,12 +153,24 @@ class TestRenderers:
         mock_print.assert_any_call("Content-Type: text/html")
         mock_print.assert_any_call("Status: 200\n")
 
-        mock_format.assert_any_call("text_question", {"NAME": "User 2", "TEXT": "Answer 1"}, sanitize=True)
-        mock_format.assert_any_call("text_question", {"NAME": "User 1", "TEXT": "Answer 1"}, sanitize=True)
-        mock_format.assert_any_call("img_question", {"NAME": "User 2", "SRC": "/images/path", "CAPTION": "Answer 2"}, sanitize=True)
+        mock_format.assert_any_call(
+            "text_question", {"NAME": "User 2", "TEXT": "Answer 1"}, sanitize=True
+        )
+        mock_format.assert_any_call(
+            "text_question", {"NAME": "User 1", "TEXT": "Answer 1"}, sanitize=True
+        )
+        mock_format.assert_any_call(
+            "img_question",
+            {"NAME": "User 2", "SRC": "/images/path", "CAPTION": "Answer 2"},
+            sanitize=True,
+        )
 
-        mock_format.assert_any_call(ANY, {"CREATOR": "User", "QUESTION": "Question 1", "RESPONSES": ANY})
-        mock_format.assert_any_call(ANY, {"CREATOR": "User 2", "QUESTION": "Question 2", "RESPONSES": ANY})
+        mock_format.assert_any_call(
+            ANY, {"CREATOR": "User", "QUESTION": "Question 1", "RESPONSES": ANY}
+        )
+        mock_format.assert_any_call(
+            ANY, {"CREATOR": "User 2", "QUESTION": "Question 2", "RESPONSES": ANY}
+        )
 
         mock_navbar.assert_called()
         mock_shutil.assert_called_once()
@@ -141,26 +185,23 @@ class TestRender:
         folder="exists",
         link="https://www.site.net",
         issue=5,
-        defaults=[]
+        defaults=[],
     )
 
-    token = NewsletterToken(
-        title="Title",
-        folder="exists",
-        id=1
-    )
+    token = NewsletterToken(title="Title", folder="exists", id=1)
+
     def test_render_question_form(self, mocker):
         # ARRANGE
-        mock_now = mocker.patch('server.NOW')
+        mock_now = mocker.patch("server.NOW")
         mock_now.strftime.return_value = "1"
 
-        mock_load = mocker.patch('server.load_config')
+        mock_load = mocker.patch("server.load_config")
         mock_load.return_value = (True, self.config)
 
-        mock_questions = mocker.patch('server.get_questions')
+        mock_questions = mocker.patch("server.get_questions")
         mock_questions.return_value = ([None], None)
 
-        mock_question_renderer = mocker.patch('server.render_question_form')
+        mock_question_renderer = mocker.patch("server.render_question_form")
 
         # ACT
         server.render(self.token, None)
@@ -170,16 +211,16 @@ class TestRender:
 
     def test_render_question_form_fuzz(self, mocker):
         # ARRANGE
-        mock_now = mocker.patch('server.NOW')
-        mock_load = mocker.patch('server.load_config')
+        mock_now = mocker.patch("server.NOW")
+        mock_load = mocker.patch("server.load_config")
         mock_load.return_value = (True, self.config)
 
-        mock_questions = mocker.patch('server.get_questions')
+        mock_questions = mocker.patch("server.get_questions")
         mock_questions.return_value = ([None], None)
 
         for week_num in ["2", "5", "42"]:
             mock_now.strftime.return_value = week_num
-            mock_question_renderer = mocker.patch('server.render_question_form')
+            mock_question_renderer = mocker.patch("server.render_question_form")
 
             # ACT
             server.render(self.token, None)
@@ -189,19 +230,19 @@ class TestRender:
 
     def test_render_question_default_insert(self, mocker, caplog):
         # ARRANGE
-        mock_now = mocker.patch('server.NOW')
+        mock_now = mocker.patch("server.NOW")
         mock_now.strftime.return_value = "1"
 
-        mock_load = mocker.patch('server.load_config')
+        mock_load = mocker.patch("server.load_config")
         mock_load.return_value = (True, self.config)
 
-        mock_questions = mocker.patch('server.get_questions')
+        mock_questions = mocker.patch("server.get_questions")
         mock_questions.return_value = ([], None)
 
-        mock_insert = mocker.patch('server.insert_default_questions')
+        mock_insert = mocker.patch("server.insert_default_questions")
         mock_insert.return_value = (True, None)
 
-        mock_question_renderer = mocker.patch('server.render_question_form')
+        mock_question_renderer = mocker.patch("server.render_question_form")
 
         caplog.set_level(logging.INFO)
 
@@ -216,19 +257,19 @@ class TestRender:
 
     def test_render_question_default_insert_fail(self, mocker, caplog):
         # ARRANGE
-        mock_now = mocker.patch('server.NOW')
+        mock_now = mocker.patch("server.NOW")
         mock_now.strftime.return_value = "1"
 
-        mock_load = mocker.patch('server.load_config')
+        mock_load = mocker.patch("server.load_config")
         mock_load.return_value = (True, self.config)
 
-        mock_questions = mocker.patch('server.get_questions')
+        mock_questions = mocker.patch("server.get_questions")
         mock_questions.return_value = ([], None)
 
-        mock_insert = mocker.patch('server.insert_default_questions')
+        mock_insert = mocker.patch("server.insert_default_questions")
         mock_insert.return_value = (False, "error message")
 
-        mock_question_renderer = mocker.patch('server.render_question_form')
+        mock_question_renderer = mocker.patch("server.render_question_form")
 
         caplog.set_level(logging.WARN)
 
@@ -242,13 +283,13 @@ class TestRender:
 
     def test_render_answer_form(self, mocker):
         # ARRANGE
-        mock_now = mocker.patch('server.NOW')
+        mock_now = mocker.patch("server.NOW")
         mock_now.strftime.return_value = "3"
 
-        mock_load = mocker.patch('server.load_config')
+        mock_load = mocker.patch("server.load_config")
         mock_load.return_value = (True, self.config)
 
-        mock_answer_renderer = mocker.patch('server.render_answer_form')
+        mock_answer_renderer = mocker.patch("server.render_answer_form")
 
         # ACT
         server.render(self.token, None)
@@ -258,14 +299,14 @@ class TestRender:
 
     def test_render_answer_form_fuzz(self, mocker):
         # ARRANGE
-        mock_now = mocker.patch('server.NOW')
+        mock_now = mocker.patch("server.NOW")
 
-        mock_load = mocker.patch('server.load_config')
+        mock_load = mocker.patch("server.load_config")
         mock_load.return_value = (True, self.config)
 
         for week_num in ["7", "35"]:
             mock_now.strftime.return_value = week_num
-            mock_answer_renderer = mocker.patch('server.render_answer_form')
+            mock_answer_renderer = mocker.patch("server.render_answer_form")
 
             # ACT
             server.render(self.token, None)
@@ -275,13 +316,13 @@ class TestRender:
 
     def test_render_newsletter(self, mocker):
         # ARRANGE
-        mock_now = mocker.patch('server.NOW')
+        mock_now = mocker.patch("server.NOW")
         mock_now.strftime.return_value = "4"
 
-        mock_load = mocker.patch('server.load_config')
+        mock_load = mocker.patch("server.load_config")
         mock_load.return_value = (True, self.config)
 
-        mock_newsletter_renderer = mocker.patch('server.render_newsletter')
+        mock_newsletter_renderer = mocker.patch("server.render_newsletter")
 
         # ACT
         server.render(self.token, None)
@@ -291,14 +332,14 @@ class TestRender:
 
     def test_render_newsletter_fuzz(self, mocker):
         # ARRANGE
-        mock_now = mocker.patch('server.NOW')
+        mock_now = mocker.patch("server.NOW")
 
-        mock_load = mocker.patch('server.load_config')
+        mock_load = mocker.patch("server.load_config")
         mock_load.return_value = (True, self.config)
 
         for week_num in ["4", "28"]:
             mock_now.strftime.return_value = week_num
-            mock_newsletter_renderer = mocker.patch('server.render_newsletter')
+            mock_newsletter_renderer = mocker.patch("server.render_newsletter")
 
             # ACT
             server.render(self.token, None)
@@ -308,10 +349,10 @@ class TestRender:
 
     def test_render_historic_issue(self, mocker, caplog):
         # ARRANGE
-        mock_load = mocker.patch('server.load_config')
+        mock_load = mocker.patch("server.load_config")
         mock_load.return_value = (True, self.config)
 
-        mock_newsletter = mocker.patch('server.render_newsletter')
+        mock_newsletter = mocker.patch("server.render_newsletter")
 
         caplog.set_level(logging.DEBUG)
 
@@ -325,10 +366,10 @@ class TestRender:
 
     def test_render_future_issue_fails(self, mocker, caplog):
         # ARRANGE
-        mock_load = mocker.patch('server.load_config')
+        mock_load = mocker.patch("server.load_config")
         mock_load.return_value = (True, self.config)
 
-        mock_newsletter = mocker.patch('server.render_newsletter')
+        mock_newsletter = mocker.patch("server.render_newsletter")
 
         caplog.set_level(logging.DEBUG)
 
@@ -344,19 +385,27 @@ class TestRender:
 
     def test_render_current_issue_same_as_none(self, mocker):
         # ARRANGE
-        mock_now = mocker.patch('server.NOW')
+        mock_now = mocker.patch("server.NOW")
 
-        mock_load = mocker.patch('server.load_config')
+        mock_load = mocker.patch("server.load_config")
         mock_load.return_value = (True, self.config)
 
-        mock_getter = mocker.patch('server.get_questions')
+        mock_getter = mocker.patch("server.get_questions")
         mock_getter.return_value = ([None], None)
 
-        mock_question_renderer = mocker.patch('server.render_question_form')
-        mock_answer_renderer = mocker.patch('server.render_answer_form')
-        mock_newsletter = mocker.patch('server.render_newsletter')
+        mock_question_renderer = mocker.patch("server.render_question_form")
+        mock_answer_renderer = mocker.patch("server.render_answer_form")
+        mock_newsletter = mocker.patch("server.render_newsletter")
 
-        for week_num, mock_renderer in zip(["1", "3", "4"], [mock_question_renderer, mock_question_renderer, mock_answer_renderer, mock_newsletter]):
+        for week_num, mock_renderer in zip(
+            ["1", "3", "4"],
+            [
+                mock_question_renderer,
+                mock_question_renderer,
+                mock_answer_renderer,
+                mock_newsletter,
+            ],
+        ):
             mock_now.strftime.return_value = week_num
 
             # ACT
@@ -367,7 +416,7 @@ class TestRender:
 
     def test_config_issues_fail(self, mocker):
         # ARRANGE
-        mock_load = mocker.patch('server.load_config')
+        mock_load = mocker.patch("server.load_config")
         mock_load.return_value = False, EmptyConfig
 
         # ACT
@@ -388,15 +437,16 @@ class TestAnswer:
         "question_3": "Caption",
         "image_3": {"path": "some/path"},
     }
+
     def test_answer_submission(self, mocker, caplog):
-        mock_insert = mocker.patch('server.insert_answer')
+        mock_insert = mocker.patch("server.insert_answer")
         mock_insert.return_value = (True, "")
 
         caplog.set_level(logging.INFO)
 
         responses = {
             "2": {"img": None, "text": "Answer 2"},
-            "3": {"img": "some/path", "text": "Caption"}
+            "3": {"img": "some/path", "text": "Caption"},
         }
 
         with pytest.raises(NewsletterException) as e_info:
@@ -412,7 +462,7 @@ class TestAnswer:
         assert dict(mock_insert.call_args[0][1]) == responses
 
     def test_answer_submission_database_error(self, mocker):
-        mock_insert = mocker.patch('server.insert_answer')
+        mock_insert = mocker.patch("server.insert_answer")
         mock_insert.return_value = (False, "database error")
 
         with pytest.raises(NewsletterException) as e_info:
@@ -429,7 +479,10 @@ class TestAnswer:
             server.answer(params)
 
         assert e_info.value.status == 400
-        assert e_info.value.msg == "Form keys are not in expected format. Do not mess with the post request!"
+        assert (
+            e_info.value.msg
+            == "Form keys are not in expected format. Do not mess with the post request!"
+        )
 
     def test_answer_submission_meddled(self):
         params = copy.deepcopy(self.params)
@@ -439,7 +492,10 @@ class TestAnswer:
             server.answer(params)
 
         assert e_info.value.status == 400
-        assert e_info.value.msg == "Form keys not in two parts. Do not mess with the post request!"
+        assert (
+            e_info.value.msg
+            == "Form keys not in two parts. Do not mess with the post request!"
+        )
 
     def test_answer_submission_no_name(self):
         params = copy.deepcopy(self.params)

@@ -27,9 +27,7 @@ DIR = os.path.dirname(__file__)
 NOW = datetime.now()
 
 
-def render_question_form(
-    title: str, newsletter_id: int, issue: int
-) -> None:
+def render_question_form(title: str, newsletter_id: int, issue: int) -> None:
     """
     Render the question submission form for the given newsletter.
 
@@ -75,9 +73,7 @@ def render_question_form(
     print(format_html(html, values))
 
 
-def render_answer_form(
-    title: str, newsletter_id: int, issue: int
-) -> None:
+def render_answer_form(title: str, newsletter_id: int, issue: int) -> None:
     """
     Render the response form for the given newsletter.
 
@@ -189,7 +185,8 @@ def render_newsletter(
                 shutil.copy(img_path, public_path)
                 q_html += format_html(
                     img_response,
-                    {"NAME": name, "SRC": f"/images/{filename}", "CAPTION": text}, sanitize=True
+                    {"NAME": name, "SRC": f"/images/{filename}", "CAPTION": text},
+                    sanitize=True,
                 )
 
         q_values["RESPONSES"] = q_html
