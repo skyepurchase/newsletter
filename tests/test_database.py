@@ -105,7 +105,7 @@ class TestInsertAnswer:
         mock_conn.close.assert_called_once()
 
         assert success
-        assert error_text is None
+        assert error_text == ""
 
     def test_insert_duplicate_answer(self, mocker):
         mock_conn = mocker.Mock()
@@ -193,7 +193,7 @@ class TestInsertQuestion:
         mock_conn.close.assert_called_once()
 
         assert success
-        assert error_text is None
+        assert error_text == ""
 
     def test_insert_duplicate_question(self, mocker):
         mock_conn = mocker.Mock()

@@ -207,6 +207,7 @@ class TestRender:
         server.render(self.token, None)
 
         # ASSERT
+        mock_load.assert_called_once_with("exists", ANY)
         mock_question_renderer.assert_called_once_with("Title", 1, 5)
 
     def test_render_question_form_fuzz(self, mocker):
@@ -509,4 +510,54 @@ class TestAnswer:
 
 
 class TestQuestion:
-    pass
+    config = NewsletterConfig(
+        name="Title",
+        email="mail@mail.com",
+        folder="exists",
+        link="https://www.site.net",
+        issue=5,
+        defaults=[],
+    )
+
+    params = {
+        "unlock": "password",
+        "name": "Jo Blogs",
+        "question": "Question 1",
+    }
+
+    token = NewsletterToken(title="Title", folder="exists", id=1)
+
+    def test_question_submission(self, mocker):
+        # ARRANGE
+        mock_load = mocker.patch("server.load_config")
+        mock_load.return_value = (True, self.config)
+
+        mock_insert = mocker.patch("server.insert_question")
+        mock_insert.return_value = (True, "")
+
+        # ACT
+        with pytest.raises(NewsletterException) as e_info:
+            server.question_submit(self.token, self.params)
+
+        # ASSERT
+        assert e_info.value.status == 201
+        assert e_info.value.msg == "Thank you for submitting your question :)."
+
+        mock_load.assert_called_once_with("exists", ANY)
+        mock_insert.assert_called_once_with(1, 5, "Jo Blogs", "Question 1")
+
+    def test_question_submission_database_error(self, mocker):
+        # ARRANGE
+        mock_load = mocker.patch("server.load_config")
+        mock_load.return_value = (True, self.config)
+
+        mock_insert = mocker.patch("server.insert_question")
+        mock_insert.return_value = (False, "database error.")
+
+        # ACT
+        with pytest.raises(NewsletterException) as e_info:
+            server.question_submit(self.token, self.params)
+
+        # ASSERT
+        assert e_info.value.status == 500
+        assert e_info.value.msg == "database error."

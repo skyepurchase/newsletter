@@ -244,7 +244,7 @@ def insert_question(
     issue: int,
     name: str,
     question: str,
-) -> Tuple[bool, Optional[str]]:
+) -> Tuple[bool, str]:
     """
     Insert the question for a specific user.
 
@@ -262,7 +262,7 @@ def insert_question(
     conn, cursor = _get_connection()
 
     success = True
-    error_text: Optional[str] = None
+    error_text = ""
     try:
         query = """
         INSERT INTO questions (newsletter_id, creator, text, issue)

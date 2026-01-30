@@ -336,7 +336,6 @@ def question_submit(token: NewsletterToken, parameters: dict):
 
     created, error = insert_question(token.id, config.issue, name, question)
     if created:
-        raise NewsletterException(201, "Thank you for submitting you question :).")
+        raise NewsletterException(201, "Thank you for submitting your question :).")
     else:
-        assert isinstance(error, str)
         raise NewsletterException(500, error)
