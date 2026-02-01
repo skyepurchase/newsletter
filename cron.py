@@ -33,7 +33,7 @@ if __name__=='__main__':
             print(f"Failed to increment the issue for {newsletter}: {msg}")
             exit(3)
 
-        success, config = load_config(os.path.join("newsletters", newsletter), logging.getLogger(__name__))
+        success, config = load_config(os.path.join(HOME, "newsletters", newsletter), logging.getLogger(__name__))
 
         if not success:
             print(f"Unable to load config for {newsletter}")

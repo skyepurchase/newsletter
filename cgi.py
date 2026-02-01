@@ -294,7 +294,7 @@ def render(
     HttpResponse : Error
         The suitable error to throw HTTP Responses
     """
-    success, config = load_config(token.folder, LOGGER)
+    success, config = load_config(os.path.join("/home/atp45", token.folder), LOGGER)
     if not success:
         raise HttpResponse(500, "Failed to load config")
 
@@ -410,7 +410,7 @@ def question_submit(
     HttpResponse : Error
 The suitable error to throw HTTP Responses
     """
-    success, config = load_config(token.folder, LOGGER)
+    success, config = load_config(os.path.join("/home/atp45", token.folder), LOGGER)
     if not success:
         raise HttpResponse(500, "Failed to load config")
 

@@ -23,7 +23,7 @@ def load_config(
     Parameters
     ----------
     newsletter_folder : str
-        The folder that stores the newsletter config
+        The folder that stores the newsletter config. Requires full path name.
 
     Returns
     -------
@@ -35,7 +35,6 @@ def load_config(
     try:
         with open(
             os.path.join(
-                "/home/atp45",
                 newsletter_folder,
                 "config.yaml"
             ), "r"
@@ -51,7 +50,6 @@ def load_config(
     try:
         with open(
             os.path.join(
-                "/home/atp45",
                 newsletter_folder,
                 "issue"
             ), "r"
