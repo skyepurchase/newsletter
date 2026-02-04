@@ -27,7 +27,7 @@ if __name__=='__main__':
         exit(2)
 
     for newsletter in os.listdir(os.path.join(HOME, "newsletters")):
-        success, msg = check_and_increment_issue(newsletter)
+        success, msg = check_and_increment_issue(os.path.join(HOME, "newsletters", newsletter))
 
         if not success:
             print(f"Failed to increment the issue for {newsletter}: {msg}")

@@ -23,7 +23,7 @@ def load_config(
     Parameters
     ----------
     newsletter_folder : str
-        The folder that stores the newsletter config
+        The folder that stores the newsletter config. Requires full path name.
 
     Returns
     -------
@@ -35,7 +35,6 @@ def load_config(
     try:
         with open(
             os.path.join(
-                "/home/atp45",
                 newsletter_folder,
                 "config.yaml"
             ), "r"
@@ -51,7 +50,6 @@ def load_config(
     try:
         with open(
             os.path.join(
-                "/home/atp45",
                 newsletter_folder,
                 "issue"
             ), "r"
@@ -108,7 +106,7 @@ def check_and_increment_issue(newsletter_folder: str) -> Tuple[bool, Optional[st
     Returns
     -------
     success : bool
-        Whether the incrementing succeeded. True if not incrementation required
+        Whether the incrementing succeeded. True if no incrementation required
     msg : str | None
         The error message if required
     """
@@ -117,9 +115,10 @@ def check_and_increment_issue(newsletter_folder: str) -> Tuple[bool, Optional[st
     if int_state == 0:
         try:
             with open(
-                os.path.join("/home/atp45", newsletter_folder, "issue"), "r"
+                os.path.join(newsletter_folder, "issue"), "r+"
             ) as issue_file:
                 issue = int(issue_file.read())
+                issue_file.seek(0)
                 issue_file.write(str(issue+1))
         except OSError:
             return False, "Failed to open issue file"
