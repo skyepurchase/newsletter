@@ -3,8 +3,9 @@ import shutil
 from dotenv import load_dotenv
 from datetime import datetime
 
+from utils.constants import State
 from utils.logger import renderer_logger as LOGGER
-from utils.helpers import load_config
+from utils.helpers import get_state, load_config
 from utils.html import format_html, make_navbar
 from utils.database import (
     get_questions,
@@ -235,13 +236,8 @@ def render(
             render_newsletter(token.title, token.id, issue, config.issue)
             return
 
-    week = int(NOW.strftime("%U"))
-
-    LOGGER.debug(
-        f"Issue: {config.issue}, Config folder: {token.folder}, stage: {week % 4}"
-    )
-
-    if week % 4 in [1, 2]:
+    state = get_state()
+    if state == State.Question:
         default_questions, _ = get_questions(token.id, config.issue)
 
         if len(default_questions) == 0:
@@ -256,7 +252,7 @@ def render(
                 )
 
         render_question_form(token.title, token.id, config.issue)
-    elif week % 4 == 3:
+    elif state == State.Answer:
         render_answer_form(token.title, token.id, config.issue)
     else:
         render_newsletter(token.title, token.id, config.issue, config.issue)

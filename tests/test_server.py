@@ -6,6 +6,7 @@ from unittest.mock import ANY
 
 
 import server
+from utils.constants import State
 from utils.type_hints import (
     EmptyConfig,
     NewsletterConfig,
@@ -192,8 +193,8 @@ class TestRender:
 
     def test_render_question_form(self, mocker):
         # ARRANGE
-        mock_now = mocker.patch("server.NOW")
-        mock_now.strftime.return_value = "1"
+        mock_state = mocker.patch("server.get_state")
+        mock_state.return_value = State.Question
 
         mock_load = mocker.patch("server.load_config")
         mock_load.return_value = (True, self.config)
@@ -210,29 +211,10 @@ class TestRender:
         mock_load.assert_called_once_with("exists", ANY)
         mock_question_renderer.assert_called_once_with("Title", 1, 5)
 
-    def test_render_question_form_fuzz(self, mocker):
-        # ARRANGE
-        mock_now = mocker.patch("server.NOW")
-        mock_load = mocker.patch("server.load_config")
-        mock_load.return_value = (True, self.config)
-
-        mock_questions = mocker.patch("server.get_questions")
-        mock_questions.return_value = ([None], None)
-
-        for week_num in ["2", "5", "42"]:
-            mock_now.strftime.return_value = week_num
-            mock_question_renderer = mocker.patch("server.render_question_form")
-
-            # ACT
-            server.render(self.token, None)
-
-            # ASSERT
-            mock_question_renderer.assert_called_once_with("Title", 1, 5)
-
     def test_render_question_default_insert(self, mocker, caplog):
         # ARRANGE
-        mock_now = mocker.patch("server.NOW")
-        mock_now.strftime.return_value = "1"
+        mock_state = mocker.patch("server.get_state")
+        mock_state.return_value = State.Question
 
         mock_load = mocker.patch("server.load_config")
         mock_load.return_value = (True, self.config)
@@ -258,8 +240,8 @@ class TestRender:
 
     def test_render_question_default_insert_fail(self, mocker, caplog):
         # ARRANGE
-        mock_now = mocker.patch("server.NOW")
-        mock_now.strftime.return_value = "1"
+        mock_state = mocker.patch("server.get_state")
+        mock_state.return_value = State.Question
 
         mock_load = mocker.patch("server.load_config")
         mock_load.return_value = (True, self.config)
@@ -284,8 +266,8 @@ class TestRender:
 
     def test_render_answer_form(self, mocker):
         # ARRANGE
-        mock_now = mocker.patch("server.NOW")
-        mock_now.strftime.return_value = "3"
+        mock_state = mocker.patch("server.get_state")
+        mock_state.return_value = State.Answer
 
         mock_load = mocker.patch("server.load_config")
         mock_load.return_value = (True, self.config)
@@ -298,27 +280,10 @@ class TestRender:
         # ASSERT
         mock_answer_renderer.assert_called_once_with("Title", 1, 5)
 
-    def test_render_answer_form_fuzz(self, mocker):
-        # ARRANGE
-        mock_now = mocker.patch("server.NOW")
-
-        mock_load = mocker.patch("server.load_config")
-        mock_load.return_value = (True, self.config)
-
-        for week_num in ["7", "35"]:
-            mock_now.strftime.return_value = week_num
-            mock_answer_renderer = mocker.patch("server.render_answer_form")
-
-            # ACT
-            server.render(self.token, None)
-
-            # ASSERT
-            mock_answer_renderer.assert_called_once_with("Title", 1, 5)
-
     def test_render_newsletter(self, mocker):
         # ARRANGE
-        mock_now = mocker.patch("server.NOW")
-        mock_now.strftime.return_value = "4"
+        mock_state = mocker.patch("server.get_state")
+        mock_state.return_value = State.Publish
 
         mock_load = mocker.patch("server.load_config")
         mock_load.return_value = (True, self.config)
@@ -330,23 +295,6 @@ class TestRender:
 
         # ASSERT
         mock_newsletter_renderer.assert_called_once_with("Title", 1, 5, 5)
-
-    def test_render_newsletter_fuzz(self, mocker):
-        # ARRANGE
-        mock_now = mocker.patch("server.NOW")
-
-        mock_load = mocker.patch("server.load_config")
-        mock_load.return_value = (True, self.config)
-
-        for week_num in ["4", "28"]:
-            mock_now.strftime.return_value = week_num
-            mock_newsletter_renderer = mocker.patch("server.render_newsletter")
-
-            # ACT
-            server.render(self.token, None)
-
-            # ASSERT
-            mock_newsletter_renderer.assert_called_once_with("Title", 1, 5, 5)
 
     def test_render_historic_issue(self, mocker, caplog):
         # ARRANGE
@@ -386,7 +334,7 @@ class TestRender:
 
     def test_render_current_issue_same_as_none(self, mocker):
         # ARRANGE
-        mock_now = mocker.patch("server.NOW")
+        mock_state = mocker.patch("server.get_state")
 
         mock_load = mocker.patch("server.load_config")
         mock_load.return_value = (True, self.config)
@@ -398,16 +346,15 @@ class TestRender:
         mock_answer_renderer = mocker.patch("server.render_answer_form")
         mock_newsletter = mocker.patch("server.render_newsletter")
 
-        for week_num, mock_renderer in zip(
-            ["1", "3", "4"],
+        for state, mock_renderer in zip(
+            State,
             [
-                mock_question_renderer,
                 mock_question_renderer,
                 mock_answer_renderer,
                 mock_newsletter,
             ],
         ):
-            mock_now.strftime.return_value = week_num
+            mock_state.return_value = state
 
             # ACT
             server.render(self.token, self.config.issue)

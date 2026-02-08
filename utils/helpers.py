@@ -4,8 +4,11 @@ import traceback
 import logging
 from dotenv import load_dotenv
 from pydantic import ValidationError
+from datetime import datetime
 
-from typing import Tuple
+from typing import Optional, Tuple
+
+from .constants import State
 from .type_hints import EmptyConfig, NewsletterConfig
 
 
@@ -24,7 +27,7 @@ def load_config(
     Parameters
     ----------
     newsletter_folder : str
-        The folder that stores the newsletter config
+        The folder that stores the newsletter config. Requires full path name.
 
     Returns
     -------
@@ -74,3 +77,57 @@ def load_config(
         return False, EmptyConfig
 
     return True, parsed_config
+
+
+def _get_int_state() -> int:
+    """
+    Return the current week modulo 4
+    """
+    week_num = int(datetime.now().strftime("%U"))
+    return (week_num - 1) % 4  # Change in 2027
+
+
+def get_state() -> State:
+    """
+    Get the current newsletter state based on the current time.
+
+    Returns
+    -------
+    state : State
+        An enum representing the current state
+    """
+    int_state = _get_int_state()
+
+    if int_state <= 1:
+        return State.Question
+    elif int_state == 2:
+        return State.Answer
+    else:
+        return State.Publish
+
+
+def check_and_increment_issue(newsletter_folder: str) -> Tuple[bool, Optional[str]]:
+    """
+    Check whether the issue number should be incremented and increment it if so.
+
+    Returns
+    -------
+    success : bool
+        Whether the incrementing succeeded. True if no incrementation required
+    msg : str | None
+        The error message if required
+    """
+    int_state = _get_int_state()
+
+    if int_state == 0:
+        try:
+            with open(os.path.join(newsletter_folder, "issue"), "r+") as issue_file:
+                issue = int(issue_file.read())
+                issue_file.seek(0)
+                issue_file.write(str(issue + 1))
+        except OSError:
+            return False, "Failed to open issue file"
+        except ValueError:
+            return False, "Failed to parse issue file"
+
+    return True, None

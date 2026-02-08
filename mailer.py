@@ -57,7 +57,7 @@ if __name__ == "__main__":
 
     args = args.parse_args()
 
-    success, config = load_config(args.config_dir, LOGGER)
+    success, config = load_config(os.path.join("/home/atp45", args.config_dir), LOGGER)
     if success:
         main(
             MailerConfig(
