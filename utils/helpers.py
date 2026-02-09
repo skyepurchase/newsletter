@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from pydantic import ValidationError
 from datetime import datetime
 
-from typing import Optional, Tuple
+from typing import Tuple
 
 from .constants import State
 from .type_hints import EmptyConfig, NewsletterConfig
@@ -106,7 +106,7 @@ def get_state() -> State:
         return State.Publish
 
 
-def check_and_increment_issue(newsletter_folder: str) -> Tuple[bool, Optional[str]]:
+def check_and_increment_issue(newsletter_folder: str) -> Tuple[bool, str]:
     """
     Check whether the issue number should be incremented and increment it if so.
 
@@ -114,7 +114,7 @@ def check_and_increment_issue(newsletter_folder: str) -> Tuple[bool, Optional[st
     -------
     success : bool
         Whether the incrementing succeeded. True if no incrementation required
-    msg : str | None
+    msg : str
         The error message if required
     """
     int_state = _get_int_state()
@@ -130,4 +130,4 @@ def check_and_increment_issue(newsletter_folder: str) -> Tuple[bool, Optional[st
         except ValueError:
             return False, "Failed to parse issue file"
 
-    return True, None
+    return True, ""
