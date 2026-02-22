@@ -38,12 +38,12 @@ class TestMailer:
         caplog.set_level(logging.CRITICAL)
 
         # ACT
-        with pytest.raises(SystemExit) as info_e:
+        with pytest.raises(SystemExit) as e_info:
             mailer.main(config)
 
         # ASSERT
         assert "Illegal config file submitted" in caplog.text
-        assert info_e.value.code == 2
+        assert e_info.value.code == 2
 
     def test_invalid_folder_fails(self, mocker, caplog):
         # ARRANGE
@@ -63,12 +63,12 @@ class TestMailer:
         caplog.set_level(logging.CRITICAL)
 
         # ACT
-        with pytest.raises(SystemExit) as info_e:
+        with pytest.raises(SystemExit) as e_info:
             mailer.main(config)
 
         # ASSERT
         assert "Failed to load target addresses" in caplog.text
-        assert info_e.value.code == 1
+        assert e_info.value.code == 1
 
     def test_addresses_loaded(self, mocker):
         # ARRANGE
