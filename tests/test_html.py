@@ -2,7 +2,7 @@ import pytest
 import random
 import string
 
-from utils.html import format_html, hash_passcode, verify, make_navbar
+from utils.html import authenticate, format_html, hash_passcode, verify, make_navbar
 
 
 class TestMakeNavbar:
@@ -110,3 +110,60 @@ class TestVerify:
 
             # ASSERT
             assert not success
+
+
+class TestAuthenticate:
+    passcode = "secret"
+
+    def test_authenticate_authenticates_user(self, mocker):
+        # ARRANGE
+        hash = hash_passcode(self.passcode)
+
+        # ACT
+        mock_newsletters = mocker.patch("utils.html.get_newsletters")
+        mock_newsletters.return_value = [
+            (5, "Not a Title", b"huh", "fake path"),
+            (1, "Title", hash, "path"),
+        ]
+
+        success, id, title, folder = authenticate(self.passcode)
+
+        # ASSERT
+        mock_newsletters.assert_called_once()
+
+        assert success
+        assert id == 1
+        assert title == "Title"
+        assert folder == "path"
+
+    def test_authenticate_fails_on_invalid_passcode(self, mocker):
+        # ARRANGE
+        hash = hash_passcode(self.passcode)
+
+        mock_newsletters = mocker.patch("utils.html.get_newsletters")
+        mock_newsletters.return_value = [
+            (5, "Not a Title", b"huh", "fake path"),
+            (1, "Title", hash, "path"),
+        ]
+
+        # ACT
+        success, id, title, folder = authenticate("attempt")
+
+        # ASSERT
+        assert not success
+        assert id == -1
+        assert title == ""
+        assert folder == ""
+
+    @pytest.mark.parametrize("value", ["one", "1", 1, [1]])
+    def test_authenticate_fails_on_non_byte_hash(self, mocker, value):
+        # ARRANGE
+        mock_newsletters = mocker.patch("utils.html.get_newsletters")
+        mock_newsletters.return_value = [(5, "Not a Title", value, "fake path")]
+
+        # ACT
+        with pytest.raises(AssertionError) as e_info:
+            authenticate("attempt")
+
+        # ASSERT
+        assert e_info.value.args[0] == "SQL returned a hash that was not in bytes."
