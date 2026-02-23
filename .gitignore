@@ -1,6 +1,6 @@
-test.*
 *.json
 venv/
+.env
 
 # Newsletter configs
 cornerly_news/
@@ -9,3 +9,6 @@ lethal_company/
 
 # Python
 __pycache__/
+
+# Testing
+.coverage

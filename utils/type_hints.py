@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from pydantic.dataclasses import dataclass
 from typing import List, Tuple
 
 
@@ -9,9 +9,11 @@ class NewsletterConfig:
     folder: str
     link: str
     issue: int
-    defaults: List[Tuple[str,str]]
+    defaults: List[Tuple[str, str]]
+
 
 EmptyConfig = NewsletterConfig("", "", "", "", -1, [])
+
 
 @dataclass
 class MailerConfig:
@@ -32,11 +34,19 @@ class MailerConfig:
 
     debug: bool = False
 
+
 @dataclass
 class NewsletterToken:
     title: str
     folder: str
     id: int
 
+
 QuestionResponse = Tuple[str, str, str]
 Response = Tuple[str, int, List[QuestionResponse]]
+
+
+class NewsletterException(Exception):
+    def __init__(self, status: int, msg: str) -> None:
+        self.status = status
+        self.msg = msg

@@ -1,7 +1,7 @@
 #!/bin/python3
 
 
-import json
+import os
 import logging
 import mailer
 from utils.constants import State
@@ -9,31 +9,25 @@ from utils.helpers import get_state, check_and_increment_issue, load_config
 from utils.type_hints import MailerConfig
 
 
-if __name__=='__main__':
-    import os
-
-    HOME = os.getenv("HOME")
-    if HOME is None:
-        print("Unable to find $HOME variable")
-        exit(1)
-
-    with open(os.path.join(HOME, ".secrets.json"), "r") as f:
-        SECRETS = json.load(f)
-
+def main(home: str, password: str):
     state = get_state()
 
-    if not os.path.isdir(os.path.join(HOME, "newsletters")):
+    if not os.path.isdir(os.path.join(home, "newsletters")):
         print("Newsletter folder does not exist")
         exit(2)
 
-    for newsletter in os.listdir(os.path.join(HOME, "newsletters")):
-        success, msg = check_and_increment_issue(os.path.join(HOME, "newsletters", newsletter))
+    for newsletter in os.listdir(os.path.join(home, "newsletters")):
+        success, msg = check_and_increment_issue(
+            os.path.join(home, "newsletters", newsletter)
+        )
 
         if not success:
             print(f"Failed to increment the issue for {newsletter}: {msg}")
             exit(3)
 
-        success, config = load_config(os.path.join(HOME, "newsletters", newsletter), logging.getLogger(__name__))
+        success, config = load_config(
+            os.path.join(home, "newsletters", newsletter), logging.getLogger(__name__)
+        )
 
         if not success:
             print(f"Unable to load config for {newsletter}")
@@ -44,7 +38,7 @@ if __name__=='__main__':
             isAnswer=False,
             isSend=False,
             isManual=False,
-            password=SECRETS["MAIL_PASS"],
+            password=password,
             debug=False,
             name=config.name,
             email=config.email,
@@ -69,6 +63,25 @@ if __name__=='__main__':
         mailer.main(mail_config)
 
         print(f"{newsletter} {msg} successful")
+
+
+if __name__ == "__main__":
+    from dotenv import load_dotenv
+
+    load_dotenv()
+
+    HOME = os.getenv("HOME")
+    MAIL_PASS = os.getenv("MAIL_PASS")
+
+    if HOME is None:
+        print("Unable to find $HOME variable")
+        exit(1)
+
+    if MAIL_PASS is None:
+        print("Unable to find $MAIL_PASS variable")
+        exit(1)
+
+    main(HOME, MAIL_PASS)
 
     print("Done")
     exit(0)

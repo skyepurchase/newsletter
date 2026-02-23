@@ -1,71 +1,54 @@
-import os, json, sys, logging, traceback
+import os
+import sys
+import traceback
 
-from utils.constants import LOG_TIME_FORMAT
-from utils.email import generate_email_request, send_email
+from utils.logger import mailer_logger as LOGGER
+from utils.email import generate_email, send_email
 from utils.helpers import load_config
 from utils.type_hints import MailerConfig
 
 
-EDITOR = os.environ.get('EDITOR', 'vim')
-
-with open(f"/home/atp45/.secrets.json", "r") as f:
-    SECRETS = json.loads(f.read())
+EDITOR = os.getenv("EDITOR", "vim")
 
 
-LOGGER = logging.getLogger("mailer")
-formatter = logging.Formatter(
-    f'[%(asctime)s %(levelname)s] GENERIC: %(message)s',
-    datefmt=LOG_TIME_FORMAT
-)
-handler = logging.FileHandler("/home/atp45/logs/mailer")
-handler.setFormatter(formatter)
-LOGGER.addHandler(handler)
-LOGGER.setLevel(logging.DEBUG)
-
-
-def main(config: MailerConfig) -> MailerConfig:
-    formatter = logging.Formatter(
-        f'[%(asctime)s %(levelname)s] {config.name}: %(message)s',
-        datefmt=LOG_TIME_FORMAT
-    )
-    handler = logging.FileHandler("/home/atp45/logs/mailer")
-    handler.setFormatter(formatter)
-
-    for hdlr in LOGGER.handlers[:]:
-        LOGGER.removeHandler(hdlr)
-    LOGGER.addHandler(handler)
-
+def main(config: MailerConfig) -> None:
     if config.isQuestion:
-        LOGGER.info(f"Question request")
+        LOGGER.info("Question request")
         config.text = "Time to submit your questions!"
     elif config.isAnswer:
-        LOGGER.info(f"Answer request")
+        LOGGER.info("Answer request")
         config.text = "Time to submit your responses!"
     elif config.isSend:
         LOGGER.info("Publishing")
         config.text = "Hope you have all had a wonderful month!"
     else:
-        LOGGER.warning(f"Illegal config file submitted!")
+        LOGGER.critical("Illegal config file submitted!")
         sys.exit(2)
 
     try:
-        with open(f'{config.folder}/emails.txt', "r") as addr_file:
-            config.addresses = [addr.replace("\n", "") for addr in addr_file.readlines()]
+        with open(f"{config.folder}/emails.txt", "r") as addr_file:
+            config.addresses = [
+                addr.replace("\n", "") for addr in addr_file.readlines()
+            ]
     except OSError:
         LOGGER.critical("Failed to load target addresses")
         LOGGER.debug(traceback.format_exc())
         exit(1)
 
-    email = generate_email_request(config)
+    email = generate_email(config)
     send_email(email, config)
 
-    return config
 
-
-if __name__=='__main__':
+if __name__ == "__main__":
     from argparse import ArgumentParser
+    from dotenv import load_dotenv
 
-    args = ArgumentParser(prog="Newsletter make script")
+    load_dotenv()
+
+    MAIL_PASS = os.getenv("MAIL_PASS")
+    assert MAIL_PASS is not None, "Failed to find email config"
+
+    args = ArgumentParser(prog="Mailer agent for newsletter")
     args.add_argument("-c", "--config_dir", required=True)
     args.add_argument("-d", "--debug", action="store_true")
     args.add_argument("-q", "--question", action="store_true")
@@ -76,20 +59,22 @@ if __name__=='__main__':
 
     success, config = load_config(os.path.join("/home/atp45", args.config_dir), LOGGER)
     if success:
-        main(MailerConfig(
-            isQuestion=args.question,
-            isAnswer=args.answer,
-            isSend=not(args.answer or args.question),
-            isManual=args.manual,
-            password=SECRETS["MAIL_PASS"],
-            debug=args.debug,
-            name=config.name,
-            email=config.email,
-            issue=config.issue,
-            addresses=[config.email],
-            folder=config.folder,
-            link=config.link,
-            text="",
-        ))
+        main(
+            MailerConfig(
+                isQuestion=args.question,
+                isAnswer=args.answer,
+                isSend=not (args.answer or args.question),
+                isManual=args.manual,
+                password=MAIL_PASS,
+                debug=args.debug,
+                name=config.name,
+                email=config.email,
+                issue=config.issue,
+                addresses=[config.email],
+                folder=config.folder,
+                link=config.link,
+                text="",
+            )
+        )
     else:
         exit(1)

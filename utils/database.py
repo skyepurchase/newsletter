@@ -1,30 +1,38 @@
-import json, traceback, logging
+import os
+from dotenv import load_dotenv
 
 import mysql.connector
-from mysql.connector.errors import Error, IntegrityError, ProgrammingError
-
-from typing import List, Optional, Tuple
+from mysql.connector.abstracts import MySQLConnectionAbstract, MySQLCursorAbstract
+from mysql.connector.locales import errorcode
+from mysql.connector.pooling import PooledMySQLConnection
 
 from .type_hints import Response
-from .constants import LOG_TIME_FORMAT
+from typing import Any, List, Optional, Tuple, Union
 
 
-formatter = logging.Formatter(
-    '[%(asctime)s %(levelname)s] %(message)s',
-    datefmt=LOG_TIME_FORMAT
-)
-logger = logging.getLogger(__name__)
-handler = logging.FileHandler(f"/home/atp45/logs/mysql")
-handler.setFormatter(formatter)
-logger.addHandler(handler)
-logger.setLevel(logging.DEBUG)
+load_dotenv()
 
 
-with open(f"/home/atp45/.secrets.json", "r") as f:
-    SECRETS = json.loads(f.read())
+USER = os.getenv("USER")
+DB_PASS = os.getenv("DB_PASS")
+DATABASE = os.getenv("DATABASE")
 
 
-def _get_connection():
+def _process_insert_errors(code: int) -> str:
+    if code == errorcode.ER_DUP_ENTRY:
+        return "Attempted to insert entry that already exists."
+    elif code == errorcode.ER_BAD_NULL_ERROR:
+        return "Expected value but received null."
+    elif code in [1136, 1054, errorcode.ER_DUP_FIELDNAME]:
+        return "Unexpected columns or duplicated columns."
+    else:
+        return f"Unprocessed database error {code}."
+
+
+def _get_connection() -> Tuple[
+    Union[PooledMySQLConnection, MySQLConnectionAbstract],
+    Union[MySQLCursorAbstract, Any],
+]:
     """
     Get a connection and cursor to the newsletter database.
 
@@ -35,15 +43,18 @@ def _get_connection():
     cursor
         The cursor in the database
     """
+    assert USER is not None, "Failed to find database config"
+    assert DB_PASS is not None, "Failed to find database config"
+    assert DATABASE is not None, "Failed to find the database config"
+
     conn = mysql.connector.connect(
         host="localhost",
-        user="atp45",
-        password=SECRETS["DB_PASS"],
-        database="atp45/newsletter"
+        user=USER,
+        password=DB_PASS,
+        database=DATABASE,
     )
     conn.autocommit = False
     cursor = conn.cursor()
-    logger.info("Connection opened")
 
     return conn, cursor
 
@@ -67,15 +78,11 @@ def get_newsletters() -> list:
     finally:
         cursor.close()
         conn.close()
-        logger.info("Connection closed")
 
     return result
 
 
-def get_questions(
-    newsletter_id: int,
-    issue: int
-) -> Tuple[list, list]:
+def get_questions(newsletter_id: int, issue: int) -> Tuple[list, list]:
     """
     Get the questions for the specified newsletter and issue.
     This returns both the default and the user submitted questions.
@@ -116,20 +123,20 @@ def get_questions(
 
         cursor.execute(default_query, values)
         default = cursor.fetchall()
-    except ProgrammingError:
-        logger.debug(traceback.format_exc())
     finally:
         cursor.close()
         conn.close()
-        logger.info("Connection closed")
 
     return default, submitted
 
 
-def get_responses(
-    newsletter_id: int,
-    issue: int
-) -> List[Response]:
+def get_responses(newsletter_id: int, issue: int) -> List[Response]:
+    """
+    Returns
+    -------
+    results : list[creator, question, list[name, text, path]]
+        The questions and their responses
+    """
     conn, cursor = _get_connection()
 
     results = []
@@ -159,10 +166,9 @@ def get_responses(
 
         for question in user_questions:
             q_id, creator, question = question
-
-            if not isinstance(q_id, int):
-                logger.debug(f"Expected q_id to be int but receieved {type(q_id)}")
-                raise TypeError(f"Expected q_id to be int but receieved {type(q_id)}")
+            assert isinstance(q_id, int), (
+                "Question id not integer"
+            )  # This should be guaranteed
 
             cursor.execute(response_query, (q_id,))
             responses = cursor.fetchall()
@@ -171,30 +177,22 @@ def get_responses(
 
         for question in default_questions:
             q_id, question = question
-
-            if not isinstance(q_id, int):
-                logger.debug(f"Expected q_id to be int but receieved {type(q_id)}")
-                raise TypeError(f"Expected q_id to be int but receieved {type(q_id)}")
+            assert isinstance(q_id, int), (
+                "Question id not integer"
+            )  # This should be guaranteed
 
             cursor.execute(response_query, (q_id,))
             responses = cursor.fetchall()
 
             results.append(("", question, responses))
-
-    except TypeError:
-        logger.error("Failed to retrieve responses due to type error: %s", traceback.format_exc())
     finally:
         cursor.close()
         conn.close()
-        logger.info("Connection closed")
 
     return results
 
 
-def insert_answer(
-    name: str,
-    responses: dict
-) -> Tuple[bool, Optional[str]]:
+def insert_answer(name: str, responses: dict) -> Tuple[bool, str]:
     """
     Insert the answers for a specific user.
 
@@ -208,7 +206,7 @@ def insert_answer(
     conn, cursor = _get_connection()
 
     success = True
-    error_text: Optional[str] = None
+    error_text = ""
     try:
         for q_id, data in responses.items():
             # Skip duplicate entries
@@ -220,24 +218,23 @@ def insert_answer(
             """
             # ON DUPLICATE KEY UPDATE img_path=%s, text=%s;
             values = (
-                q_id, name,
-                data['img'], data['text'],
+                q_id,
+                name,
+                data["img"],
+                data["text"],
                 # data['img'], data['text']
             )
 
             cursor.execute(query, values)
 
         conn.commit()
-    except Error as error:
-        logger.error("Failed to submit answers, rollback: %s", traceback.format_exc())
-
+    except mysql.connector.IntegrityError as error:
         conn.rollback()
         success = False
-        error_text = error.msg
+        error_text = _process_insert_errors(error.errno)
     finally:
         cursor.close()
         conn.close()
-        logger.info("Connection closed")
 
     return success, error_text
 
@@ -247,7 +244,7 @@ def insert_question(
     issue: int,
     name: str,
     question: str,
-) -> Tuple[bool, Optional[str]]:
+) -> Tuple[bool, str]:
     """
     Insert the question for a specific user.
 
@@ -265,37 +262,30 @@ def insert_question(
     conn, cursor = _get_connection()
 
     success = True
-    error_text: Optional[str] = None
+    error_text = ""
     try:
         query = """
         INSERT INTO questions (newsletter_id, creator, text, issue)
         VALUES (%s, %s, %s, %s);
         """
-        values = (
-            newsletter_id, name, question, issue
-        )
+        values = (newsletter_id, name, question, issue)
 
         cursor.execute(query, values)
         conn.commit()
-    except Error as error:
-        logger.error("Failed to insert question, rollback: %s", traceback.format_exc())
-
+    except mysql.connector.IntegrityError as error:
         conn.rollback()
         success = False
-        error_text = error.msg
+        error_text = _process_insert_errors(error.errno)
     finally:
         cursor.close()
         conn.close()
-        logger.info("Connection closed")
 
     return success, error_text
 
 
 def insert_default_questions(
-    newsletter_id: int,
-    issue: int,
-    questions: List[Tuple[str, str]]
-) -> bool:
+    newsletter_id: int, issue: int, questions: List[Tuple[str, str]]
+) -> Tuple[bool, Optional[str]]:
     """
     Insert the provided text as default questions.
 
@@ -312,6 +302,8 @@ def insert_default_questions(
     """
     conn, cursor = _get_connection()
 
+    success = True
+    error_text = None
     try:
         query = """
         INSERT INTO questions (newsletter_id, creator, text, issue, base, type)
@@ -319,31 +311,24 @@ def insert_default_questions(
         """
 
         for text, form in questions:
-            values = (
-                newsletter_id, "SYS", text,
-                issue, True, form
-            )
+            values = (newsletter_id, "SYS", text, issue, True, form)
             cursor.execute(query, values)
 
         conn.commit()
-    except Error:
-        logger.error("Failed to insert question, rollback: %s", traceback.format_exc())
-
+    except mysql.connector.IntegrityError as error:
         conn.rollback()
-        return False
+        error_text = _process_insert_errors(error.errno)
+        success = False
     finally:
         cursor.close()
         conn.close()
-        logger.info("Connection closed")
 
-    return True
+    return success, error_text
 
 
 def create_newsletter(
-    title: str,
-    pass_hash: bytes,
-    folder: str
-) -> bool:
+    title: str, pass_hash: bytes, folder: str
+) -> Tuple[bool, Optional[str]]:
     """
     Create a new newsletter entry
 
@@ -365,16 +350,18 @@ def create_newsletter(
 
     query = "INSERT INTO newsletters (title, passcode, folder) VALUES (%s, %s, %s);"
     values = (title, pass_hash, folder)
+
     success = True
+    error_text = None
     try:
         cursor.execute(query, values)
         conn.commit()
-    except IntegrityError:
-        logger.error("Failed to create newsletter due to integrity error.")
+    except mysql.connector.IntegrityError:
+        conn.rollback()
+        error_text = "Failed to create newsletter due to integrity error."
         success = False
     finally:
         cursor.close()
         conn.close()
-        logger.info("Connection closed")
 
-    return success
+    return success, error_text
