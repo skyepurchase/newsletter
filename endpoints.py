@@ -1,5 +1,4 @@
 import os
-from dotenv import load_dotenv
 from datetime import datetime
 
 from utils.constants import State
@@ -16,11 +15,6 @@ from renderers import render_question_form, render_answer_form, render_newslette
 from typing import DefaultDict, Optional
 from utils.type_hints import NewsletterToken, NewsletterException
 
-
-load_dotenv()
-
-
-HOME = os.getenv("HOME")
 
 DIR = os.path.dirname(__file__)
 NOW = datetime.now()
