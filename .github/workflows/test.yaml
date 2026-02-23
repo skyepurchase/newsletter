@@ -1,0 +1,24 @@
+name: Unit tests
+run-name: ${{ github.actor }} testing newsletter
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+
+jobs:
+  uv-test:
+    name: python
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install project
+        run: uv sync --locked --all-extras --dev
+
+      - name: Run tests
+        run: uv run -m pytest tests
