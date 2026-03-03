@@ -3,6 +3,8 @@ import hashlib
 from typing import Tuple
 import bleach
 
+from utils.type_hints import ReplaceDict
+
 from .database import get_newsletters
 
 
@@ -13,7 +15,7 @@ DIR = os.path.dirname(__file__)
 NAVBAR = open(os.path.join(DIR, "../templates/navbar.html")).read()
 
 
-def format_html(html: str, replacements: dict, sanitize: bool = False) -> str:
+def format_html(html: str, replacements: ReplaceDict, sanitize: bool = False) -> str:
     for key, value in replacements.items():
         if key not in html:
             raise KeyError("Substitution key not found in text to replace")

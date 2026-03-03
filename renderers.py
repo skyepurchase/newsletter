@@ -10,7 +10,7 @@ from utils.database import (
     get_responses,
 )
 
-from utils.type_hints import NewsletterException
+from utils.type_hints import NewsletterException, ReplaceDict
 
 
 load_dotenv()
@@ -47,7 +47,7 @@ def render_question_form(title: str, newsletter_id: int, issue: int) -> None:
     for submission in questions:
         _, name, text = submission
 
-        values = {"NAME": name, "TEXT": text}
+        values: ReplaceDict = {"NAME": name, "TEXT": text}
 
         submission_html += format_html(
             question[:],  # Copy string
@@ -55,7 +55,7 @@ def render_question_form(title: str, newsletter_id: int, issue: int) -> None:
             sanitize=True,
         )
 
-    values = {
+    values: ReplaceDict = {
         "HEADER": open(os.path.join(DIR, "templates/header.html")).read(),
         "NAVBAR": make_navbar(issue, issue),
         "TITLE": f"{title} {issue}",
@@ -92,7 +92,7 @@ def render_answer_form(title: str, newsletter_id: int, issue: int) -> None:
     question_html = ""
     for question in user_questions:
         q_id, q_creator, q_text = question
-        values = {
+        values: ReplaceDict = {
             # People could be silly with this
             "ID": f"question_{q_id}",
             "NAME": q_creator,
@@ -106,7 +106,7 @@ def render_answer_form(title: str, newsletter_id: int, issue: int) -> None:
 
     for question in base_questions:
         q_id, q_text, q_type = question
-        values = {"ID": f"question_{q_id}", "QUESTION": q_text}
+        values: ReplaceDict = {"ID": f"question_{q_id}", "QUESTION": q_text}
 
         if q_type == "text":
             question_html += format_html(
@@ -122,7 +122,7 @@ def render_answer_form(title: str, newsletter_id: int, issue: int) -> None:
         else:
             raise NewsletterException(500, f"question type {q_type} unknown.")
 
-    values = {
+    values: ReplaceDict = {
         "HEADER": open(os.path.join(DIR, "templates/header.html")).read(),
         "NAVBAR": make_navbar(issue, issue),
         "QUESTIONS": question_html,
@@ -163,7 +163,7 @@ def render_newsletter(
     n_html = ""
     for question in responses:
         creator, q_text, q_responses = question
-        q_values = {"CREATOR": creator, "QUESTION": q_text}
+        q_values: ReplaceDict = {"CREATOR": creator, "QUESTION": str(q_text)}
         q_html = ""
         for response in q_responses:
             name, text, img_path = response
@@ -188,7 +188,7 @@ def render_newsletter(
 
         n_html += format_html(question_board, q_values)
 
-    values = {
+    values: ReplaceDict = {
         "HEADER": open(os.path.join(DIR, "templates/header.html")).read(),
         "NAVBAR": make_navbar(issue, curr_issue),
         "TITLE": f"{title} {issue}",

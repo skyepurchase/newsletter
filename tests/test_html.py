@@ -53,6 +53,10 @@ class TestFormatHTML:
         with pytest.raises(KeyError):
             format_html(self.html, values)
 
+    def test_int_value_fails(self):
+        # TODO: add test
+        pass
+
     def test_text_replaced(self):
         values = {"REPLACE": "Replaced text"}
         formatted = format_html(self.html, values)

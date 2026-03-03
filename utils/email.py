@@ -6,7 +6,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 from utils.html import format_html
-from utils.type_hints import MailerConfig
+from utils.type_hints import MailerConfig, ReplaceDict
 
 
 PORT = 465
@@ -23,9 +23,9 @@ def generate_email(config: MailerConfig):
 
     email_html = open(os.path.join(DIR, "../templates/email.html")).read()
 
-    values = {
+    values: ReplaceDict = {
         "NAME": config.name.title(),
-        "ISSUE": config.issue,
+        "ISSUE": str(config.issue),
         "LINK": config.link,
         "TYPE": request,
     }
