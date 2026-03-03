@@ -1,5 +1,5 @@
 from pydantic.dataclasses import dataclass
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 
 @dataclass
@@ -44,6 +44,8 @@ class NewsletterToken:
 
 QuestionResponse = Tuple[str, str, str]
 Response = Tuple[str, int, List[QuestionResponse]]
+
+ReplaceDict = Dict[str, str]
 
 
 class NewsletterException(Exception):

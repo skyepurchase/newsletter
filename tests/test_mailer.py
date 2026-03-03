@@ -194,7 +194,7 @@ class TestGenerateEmail:
         config = copy.deepcopy(self.basic_config)
         values = {
             "NAME": config.name.title(),
-            "ISSUE": config.issue,
+            "ISSUE": str(config.issue),
             "LINK": config.link,
             "TYPE": "submit questions",
         }
@@ -215,7 +215,7 @@ class TestGenerateEmail:
 
         values = {
             "NAME": config.name.title(),
-            "ISSUE": config.issue,
+            "ISSUE": str(config.issue),
             "LINK": config.link,
             "TYPE": "submit answers",
         }
@@ -236,7 +236,7 @@ class TestGenerateEmail:
 
         values = {
             "NAME": config.name.title(),
-            "ISSUE": config.issue,
+            "ISSUE": str(config.issue),
             "LINK": config.link,
             "TYPE": "view",
         }
