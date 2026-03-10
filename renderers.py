@@ -10,7 +10,7 @@ from utils.database import (
     get_responses,
 )
 
-from utils.type_hints import NewsletterException, ReplaceDict
+from utils.type_hints import NewsletterResponse, ReplaceDict
 
 
 load_dotenv()
@@ -22,7 +22,9 @@ DIR = os.path.dirname(__file__)
 NOW = datetime.now()
 
 
-def render_question_form(title: str, newsletter_id: int, issue: int) -> None:
+def render_question_form(
+    title: str, newsletter_id: int, issue: int
+) -> NewsletterResponse:
     """
     Render the question submission form for the given newsletter.
 
@@ -62,13 +64,12 @@ def render_question_form(title: str, newsletter_id: int, issue: int) -> None:
         "SUBMITTED": format_html(submitted_questions, {"RESPONSES": submission_html}),
     }
 
-    print("Content-Type: text/html")
-    print("Status: 200\n")
-
-    print(format_html(html, values))
+    return NewsletterResponse(200, format_html(html, values), content_type="text/html")
 
 
-def render_answer_form(title: str, newsletter_id: int, issue: int) -> None:
+def render_answer_form(
+    title: str, newsletter_id: int, issue: int
+) -> NewsletterResponse:
     """
     Render the response form for the given newsletter.
 
@@ -120,7 +121,7 @@ def render_answer_form(title: str, newsletter_id: int, issue: int) -> None:
                 values,
             )
         else:
-            raise NewsletterException(500, f"question type {q_type} unknown.")
+            return NewsletterResponse(500, f"question type {q_type} unknown.")
 
     values: ReplaceDict = {
         "HEADER": open(os.path.join(DIR, "templates/header.html")).read(),
@@ -129,15 +130,12 @@ def render_answer_form(title: str, newsletter_id: int, issue: int) -> None:
         "TITLE": f"{title} {issue}",
     }
 
-    print("Content-Type: text/html")
-    print("Status: 200\n")
-
-    print(format_html(html, values))
+    return NewsletterResponse(200, format_html(html, values), content_type="text/html")
 
 
 def render_newsletter(
     title: str, newsletter_id: int, issue: int, curr_issue: int
-) -> None:
+) -> NewsletterResponse:
     """
     Render the given newsletter.
 
@@ -195,7 +193,4 @@ def render_newsletter(
         "NEWSLETTER": n_html,
     }
 
-    print("Content-Type: text/html")
-    print("Status: 200\n")
-
-    print(format_html(html, values))
+    return NewsletterResponse(200, format_html(html, values), content_type="text/html")

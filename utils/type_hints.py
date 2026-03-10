@@ -42,13 +42,14 @@ class NewsletterToken:
     id: int
 
 
+@dataclass
+class NewsletterResponse:
+    status: int
+    content: str
+    content_type: str = "text/plain"
+
+
 QuestionResponse = Tuple[str, str, str]
 Response = Tuple[str, int, List[QuestionResponse]]
 
 ReplaceDict = Dict[str, str]
-
-
-class NewsletterException(Exception):
-    def __init__(self, status: int, msg: str) -> None:
-        self.status = status
-        self.msg = msg

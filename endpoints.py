@@ -13,7 +13,7 @@ from utils.database import (
 from renderers import render_question_form, render_answer_form, render_newsletter
 
 from typing import DefaultDict, Optional
-from utils.type_hints import NewsletterToken, NewsletterException
+from utils.type_hints import NewsletterToken, NewsletterResponse
 
 
 DIR = os.path.dirname(__file__)
@@ -23,7 +23,7 @@ NOW = datetime.now()
 def render(
     token: NewsletterToken,
     issue: Optional[int],
-) -> None:
+) -> NewsletterResponse:
     """
     Render the relevant form or page based on 'factors'.
 
@@ -36,18 +36,17 @@ def render(
     """
     success, config = load_config(token.folder, LOGGER)
     if not success:
-        raise NewsletterException(500, "Failed to load config")
+        return NewsletterResponse(500, "Failed to load config")
 
     if issue is not None:
         if issue > config.issue or issue < 0:
-            raise NewsletterException(
+            return NewsletterResponse(
                 404, f"Issue {issue} does not exist for {token.title}"
             )
         if issue < config.issue:
             LOGGER.debug(f"Rendering historical issue no. {issue}")
             # An old issue so just render it
-            render_newsletter(token.title, token.id, issue, config.issue)
-            return
+            return render_newsletter(token.title, token.id, issue, config.issue)
 
     state = get_state()
     if state == State.Question:
@@ -64,14 +63,14 @@ def render(
                     f"Failed to add default questions:\n{error}\nWill attempt next time"
                 )
 
-        render_question_form(token.title, token.id, config.issue)
+        return render_question_form(token.title, token.id, config.issue)
     elif state == State.Answer:
-        render_answer_form(token.title, token.id, config.issue)
+        return render_answer_form(token.title, token.id, config.issue)
     else:
-        render_newsletter(token.title, token.id, config.issue, config.issue)
+        return render_newsletter(token.title, token.id, config.issue, config.issue)
 
 
-def answer(parameters: dict):
+def answer(parameters: dict) -> NewsletterResponse:
     """
     Add a users answers to the database if they are authorised.
 
@@ -88,14 +87,14 @@ def answer(parameters: dict):
             continue
         if key == "name":
             if response == "":
-                raise NewsletterException(422, "No name provided")
+                return NewsletterResponse(422, "No name provided")
 
             name = response
             continue
 
         parts = key.split("_")
         if len(parts) != 2:
-            raise NewsletterException(
+            return NewsletterResponse(
                 400, "Form keys not in two parts. Do not mess with the post request!"
             )
 
@@ -110,19 +109,19 @@ def answer(parameters: dict):
             LOGGER.info("Processing images upload")
             responses[q_id]["img"] = response["path"]
         else:
-            raise NewsletterException(
+            return NewsletterResponse(
                 400,
                 "Form keys are not in expected format. Do not mess with the post request!",
             )
 
     created, error = insert_answer(name, responses)
     if created:
-        raise NewsletterException(201, "Thank you for submitting your answers :).")
+        return NewsletterResponse(201, "Thank you for submitting your answers :).")
     else:
-        raise NewsletterException(500, error)
+        return NewsletterResponse(500, error)
 
 
-def question_submit(token: NewsletterToken, parameters: dict):
+def question_submit(token: NewsletterToken, parameters: dict) -> NewsletterResponse:
     """
     Add a users questions to the database if they are authorised.
 
@@ -135,16 +134,16 @@ def question_submit(token: NewsletterToken, parameters: dict):
     """
     success, config = load_config(token.folder, LOGGER)
     if not success:
-        raise NewsletterException(500, "Failed to load config")
+        return NewsletterResponse(500, "Failed to load config")
 
     name = parameters["name"]
     question = parameters["question"]
 
     if name == "" or question == "":
-        raise NewsletterException(422, "No name or question provided")
+        return NewsletterResponse(422, "No name or question provided")
 
     created, error = insert_question(token.id, config.issue, name, question)
     if created:
-        raise NewsletterException(201, "Thank you for submitting your question :).")
+        return NewsletterResponse(201, "Thank you for submitting your question :).")
     else:
-        raise NewsletterException(500, error)
+        return NewsletterResponse(500, error)
