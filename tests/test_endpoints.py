@@ -1,7 +1,6 @@
 from collections import defaultdict
 import logging
 import copy
-import pytest
 from unittest.mock import ANY
 
 
@@ -10,7 +9,6 @@ from utils.constants import State
 from utils.type_hints import (
     EmptyConfig,
     NewsletterConfig,
-    NewsletterException,
     NewsletterToken,
 )
 
@@ -158,13 +156,13 @@ class TestRender:
 
         caplog.set_level(logging.DEBUG)
 
-        with pytest.raises(NewsletterException) as e_info:
-            # ACT
-            endpoints.render(self.token, 6)
+        # ACT
+        response = endpoints.render(self.token, 6)
 
         # ASSERT
-        assert e_info.value.status == 404
-        assert e_info.value.msg == "Issue 6 does not exist for Title"
+        assert response.status == 404
+        assert response.content == "Issue 6 does not exist for Title"
+        assert response.content_type == "text/plain"
 
         mock_newsletter.assert_not_called()
 
@@ -204,12 +202,12 @@ class TestRender:
         mock_load.return_value = False, EmptyConfig
 
         # ACT
-        with pytest.raises(NewsletterException) as e_info:
-            endpoints.render(self.token, None)
+        response = endpoints.render(self.token, None)
 
         # ASSERT
-        assert e_info.value.status == 500
-        assert e_info.value.msg == "Failed to load config"
+        assert response.status == 500
+        assert response.content == "Failed to load config"
+        assert response.content_type == "text/plain"
 
 
 class TestAnswer:
@@ -223,6 +221,7 @@ class TestAnswer:
     }
 
     def test_answer_submission(self, mocker, caplog):
+        # ARRANGE
         mock_insert = mocker.patch("endpoints.insert_answer")
         mock_insert.return_value = (True, "")
 
@@ -233,11 +232,13 @@ class TestAnswer:
             "3": {"img": "some/path", "text": "Caption"},
         }
 
-        with pytest.raises(NewsletterException) as e_info:
-            endpoints.answer(self.params)
+        # ACT
+        response = endpoints.answer(self.params)
 
-        assert e_info.value.status == 201
-        assert e_info.value.msg == "Thank you for submitting your answers :)."
+        # ASSERT
+        assert response.status == 201
+        assert response.content == "Thank you for submitting your answers :)."
+        assert response.content_type == "text/plain"
 
         assert "Processing images upload" in caplog.text
 
@@ -246,50 +247,62 @@ class TestAnswer:
         assert dict(mock_insert.call_args[0][1]) == responses
 
     def test_answer_submission_database_error(self, mocker):
+        # ARRANGE
         mock_insert = mocker.patch("endpoints.insert_answer")
         mock_insert.return_value = (False, "database error")
 
-        with pytest.raises(NewsletterException) as e_info:
-            endpoints.answer(self.params)
+        # ACT
+        response = endpoints.answer(self.params)
 
-        assert e_info.value.status == 500
-        assert e_info.value.msg == "database error"
+        # ASSERT
+        assert response.status == 500
+        assert response.content == "database error"
+        assert response.content_type == "text/plain"
 
     def test_answer_submission_fake_type(self):
+        # ASSERT
         params = copy.deepcopy(self.params)
         params["caption_1"] = "injection"
 
-        with pytest.raises(NewsletterException) as e_info:
-            endpoints.answer(params)
+        # ACT
+        response = endpoints.answer(params)
 
-        assert e_info.value.status == 400
+        # ASSERT
+        assert response.status == 400
         assert (
-            e_info.value.msg
+            response.content
             == "Form keys are not in expected format. Do not mess with the post request!"
         )
+        assert response.content_type == "text/plain"
 
     def test_answer_submission_meddled(self):
+        # ARRANGE
         params = copy.deepcopy(self.params)
         params["image_caption_1"] = "injection"
 
-        with pytest.raises(NewsletterException) as e_info:
-            endpoints.answer(params)
+        # ACT
+        response = endpoints.answer(params)
 
-        assert e_info.value.status == 400
+        # ASSERT
+        assert response.status == 400
         assert (
-            e_info.value.msg
+            response.content
             == "Form keys not in two parts. Do not mess with the post request!"
         )
+        assert response.content_type == "text/plain"
 
     def test_answer_submission_no_name(self):
+        # ARRANGE
         params = copy.deepcopy(self.params)
         params["name"] = ""
 
-        with pytest.raises(NewsletterException) as e_info:
-            endpoints.answer(params)
+        # ACT
+        response = endpoints.answer(params)
 
-        assert e_info.value.status == 422
-        assert e_info.value.msg == "No name provided"
+        # ASSERT
+        assert response.status == 422
+        assert response.content == "No name provided"
+        assert response.content_type == "text/plain"
 
 
 class TestQuestion:
@@ -319,12 +332,12 @@ class TestQuestion:
         mock_insert.return_value = (True, "")
 
         # ACT
-        with pytest.raises(NewsletterException) as e_info:
-            endpoints.question_submit(self.token, self.params)
+        response = endpoints.question_submit(self.token, self.params)
 
         # ASSERT
-        assert e_info.value.status == 201
-        assert e_info.value.msg == "Thank you for submitting your question :)."
+        assert response.status == 201
+        assert response.content == "Thank you for submitting your question :)."
+        assert response.content_type == "text/plain"
 
         mock_load.assert_called_once_with("exists", ANY)
         mock_insert.assert_called_once_with(1, 5, "Jo Blogs", "Question 1")
@@ -338,9 +351,9 @@ class TestQuestion:
         mock_insert.return_value = (False, "database error.")
 
         # ACT
-        with pytest.raises(NewsletterException) as e_info:
-            endpoints.question_submit(self.token, self.params)
+        response = endpoints.question_submit(self.token, self.params)
 
         # ASSERT
-        assert e_info.value.status == 500
-        assert e_info.value.msg == "database error."
+        assert response.status == 500
+        assert response.content == "database error."
+        assert response.content_type == "text/plain"

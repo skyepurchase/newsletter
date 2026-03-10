@@ -14,10 +14,11 @@ class TestRenderers:
         # ARRANGE
         mock_file = mocker.mock_open()
         mocker.patch("builtins.open", mock_file)
-        mock_print = mocker.patch("builtins.print")
         mocker.patch("renderers.os.path.join")
 
         mock_format = mocker.patch("renderers.format_html")
+        mock_format.return_value = "HTML content"
+
         mock_navbar = mocker.patch("renderers.make_navbar")
         mock_questions = mocker.patch("renderers.get_questions")
         mock_questions.return_value = (
@@ -28,11 +29,12 @@ class TestRenderers:
         caplog.set_level(logging.INFO)
 
         # ACT
-        renderers.render_question_form(self.title, self.id, self.issue)
+        response = renderers.render_question_form(self.title, self.id, self.issue)
 
         # ASSERT
-        mock_print.assert_any_call("Content-Type: text/html")
-        mock_print.assert_any_call("Status: 200\n")
+        assert response.status == 200
+        assert response.content == "HTML content"
+        assert response.content_type == "text/html"
 
         mock_format.assert_any_call(
             ANY, {"NAME": "User", "TEXT": "Question 1"}, sanitize=True
@@ -60,11 +62,12 @@ class TestRenderers:
 
         mocker.patch("builtins.open", conditional_open)
 
-        mock_print = mocker.patch("builtins.print")
         mock_join = mocker.patch("renderers.os.path.join")
         mock_join.side_effect = lambda *args: "/".join(args)
 
         mock_format = mocker.patch("renderers.format_html")
+        mock_format.return_value = "HTML content"
+
         mock_navbar = mocker.patch("renderers.make_navbar")
         mock_questions = mocker.patch("renderers.get_questions")
         mock_questions.return_value = (
@@ -75,11 +78,12 @@ class TestRenderers:
         caplog.set_level(logging.INFO)
 
         # ACT
-        renderers.render_answer_form(self.title, self.id, self.issue)
+        response = renderers.render_answer_form(self.title, self.id, self.issue)
 
         # ASSERT
-        mock_print.assert_any_call("Content-Type: text/html")
-        mock_print.assert_any_call("Status: 200\n")
+        assert response.status == 200
+        assert response.content == "HTML content"
+        assert response.content_type == "text/html"
 
         mock_format.assert_any_call(
             ANY,
@@ -119,11 +123,12 @@ class TestRenderers:
         mocker.patch("builtins.open", conditional_open)
         mock_shutil = mocker.patch("renderers.shutil.copy")
 
-        mock_print = mocker.patch("builtins.print")
         mock_join = mocker.patch("renderers.os.path.join")
         mock_join.side_effect = lambda *args: "/".join(args)
 
         mock_format = mocker.patch("renderers.format_html")
+        mock_format.return_value = "HTML content"
+
         mock_navbar = mocker.patch("renderers.make_navbar")
         mock_responses = mocker.patch("renderers.get_responses")
         mock_responses.return_value = [
@@ -138,11 +143,14 @@ class TestRenderers:
         caplog.set_level(logging.INFO)
 
         # ACT
-        renderers.render_newsletter(self.title, self.id, self.issue, self.issue)
+        response = renderers.render_newsletter(
+            self.title, self.id, self.issue, self.issue
+        )
 
         # ASSERT
-        mock_print.assert_any_call("Content-Type: text/html")
-        mock_print.assert_any_call("Status: 200\n")
+        assert response.status == 200
+        assert response.content == "HTML content"
+        assert response.content_type == "text/html"
 
         mock_format.assert_any_call(
             "text_question", {"NAME": "User 2", "TEXT": "Answer 1"}, sanitize=True
