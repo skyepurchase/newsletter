@@ -1,3 +1,6 @@
+> [!IMPORTANT]  
+> This repository has been archived and is maintained at [Codeberg](https://codeberg.org/skyepurchase/newsletter)
+
 # Newsletter
 
 This is a server and mail agent to run a personal newsletter amongst a group of people. This is a personal hobby which I run for a small number of friend groups.
