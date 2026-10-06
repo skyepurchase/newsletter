@@ -1,4 +1,4 @@
-#!/bin/python3
+#!/home/atp45/.venv/bin/python3
 
 
 import os
